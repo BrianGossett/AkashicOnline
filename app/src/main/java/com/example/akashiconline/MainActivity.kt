@@ -17,7 +17,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
 import com.example.akashiconline.ui.theme.AkashicOnlineTheme
@@ -37,7 +36,7 @@ class MainActivity : ComponentActivity() {
 @PreviewScreenSizes
 @Composable
 fun AkashicOnlineApp() {
-    var currentDestination by rememberSaveable { mutableStateOf(AppDestinations.HOME) }
+    var currentDestination by rememberSaveable { mutableStateOf(AppDestinations.TIMER) }
 
     NavigationSuiteScaffold(
         navigationSuiteItems = {
@@ -68,10 +67,13 @@ fun AkashicOnlineApp() {
 enum class AppDestinations(
     val label: String,
     val icon: Int,
+    val chapterNumber: String,
 ) {
-    HOME("Home", R.drawable.ic_home),
-    FAVORITES("Favorites", R.drawable.ic_favorite),
-    PROFILE("Profile", R.drawable.ic_account_box),
+    TIMER("Timer", R.drawable.ic_timer, "I"),
+    SCHEDULE("Schedule", R.drawable.ic_calendar, "II"),
+    FOOD("Food", R.drawable.ic_food, "III"),
+    PASSWORDS("Passwords", R.drawable.ic_lock, "IV"),
+    TASKS("Tasks", R.drawable.ic_checklist, "V"),
 }
 
 @Composable
