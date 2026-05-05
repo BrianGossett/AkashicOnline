@@ -17,8 +17,12 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
+import com.example.akashiconline.ui.screens.FoodScreen
+import com.example.akashiconline.ui.screens.PasswordsScreen
+import com.example.akashiconline.ui.screens.ScheduleScreen
+import com.example.akashiconline.ui.screens.TasksScreen
+import com.example.akashiconline.ui.screens.TimerScreen
 import com.example.akashiconline.ui.theme.AkashicOnlineTheme
 
 class MainActivity : ComponentActivity() {
@@ -56,10 +60,13 @@ fun AkashicOnlineApp() {
         }
     ) {
         Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-            Greeting(
-                name = "Android",
-                modifier = Modifier.padding(innerPadding)
-            )
+            when (currentDestination) {
+                AppDestinations.TIMER -> TimerScreen(modifier = Modifier.padding(innerPadding))
+                AppDestinations.SCHEDULE -> ScheduleScreen(modifier = Modifier.padding(innerPadding))
+                AppDestinations.FOOD -> FoodScreen(modifier = Modifier.padding(innerPadding))
+                AppDestinations.PASSWORDS -> PasswordsScreen(modifier = Modifier.padding(innerPadding))
+                AppDestinations.TASKS -> TasksScreen(modifier = Modifier.padding(innerPadding))
+            }
         }
     }
 }
@@ -76,18 +83,3 @@ enum class AppDestinations(
     TASKS("Tasks", R.drawable.ic_checklist, "V"),
 }
 
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    AkashicOnlineTheme {
-        Greeting("Android")
-    }
-}
