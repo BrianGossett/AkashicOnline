@@ -1,8 +1,10 @@
 package com.example.akashiconline.ui.timer
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.CreationExtras
 import com.example.akashiconline.data.TimerConfig
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -12,7 +14,12 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-class TimerViewModel(private val config: TimerConfig) : ViewModel() {
+class TimerViewModel(
+    application: Application,
+    private val config: TimerConfig,
+) : AndroidViewModel(application) {
+
+    private val feedback = FeedbackManager(application)
 
     private val _state = MutableStateFlow(
         TimerUiState(
@@ -26,6 +33,7 @@ class TimerViewModel(private val config: TimerConfig) : ViewModel() {
     private var timerJob: Job? = null
 
     init {
+        feedback.playWork()
         startCountdown()
     }
 
@@ -72,12 +80,15 @@ class TimerViewModel(private val config: TimerConfig) : ViewModel() {
     private fun advance() {
         val current = _state.value
         when (current.phase) {
-            Phase.WORK -> _state.update {
-                it.copy(
-                    phase = Phase.REST,
-                    secondsRemaining = config.restSeconds,
-                    totalPhaseSeconds = config.restSeconds,
-                )
+            Phase.WORK -> {
+                _state.update {
+                    it.copy(
+                        phase = Phase.REST,
+                        secondsRemaining = config.restSeconds,
+                        totalPhaseSeconds = config.restSeconds,
+                    )
+                }
+                feedback.playRest()
             }
             Phase.REST -> {
                 if (current.currentRound < current.totalRounds) {
@@ -89,16 +100,30 @@ class TimerViewModel(private val config: TimerConfig) : ViewModel() {
                             currentRound = it.currentRound + 1,
                         )
                     }
+                    feedback.playWork()
                 } else {
                     _state.update { it.copy(status = Status.COMPLETE, secondsRemaining = 0) }
+                    feedback.playComplete()
                 }
             }
         }
     }
 
+    override fun onCleared() {
+        super.onCleared()
+        feedback.release()
+    }
+
     class Factory(private val config: TimerConfig) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
-        override fun <T : ViewModel> create(modelClass: Class<T>): T =
-            TimerViewModel(config) as T
+        override fun <T : androidx.lifecycle.ViewModel> create(
+            modelClass: Class<T>,
+            extras: CreationExtras,
+        ): T {
+            val application = checkNotNull(
+                extras[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY]
+            )
+            return TimerViewModel(application, config) as T
+        }
     }
 }
