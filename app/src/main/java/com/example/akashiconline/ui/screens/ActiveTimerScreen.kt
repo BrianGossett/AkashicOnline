@@ -1,22 +1,29 @@
 package com.example.akashiconline.ui.screens
 
+import android.app.Activity
+import android.view.WindowManager
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import android.app.Activity
-import android.view.WindowManager
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -42,6 +49,7 @@ fun ActiveTimerScreen(
     onDone: () -> Unit,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    var showStopDialog by remember { mutableStateOf(false) }
 
     KeepScreenOn(isRunning = state.status == Status.RUNNING)
 
@@ -56,19 +64,37 @@ fun ActiveTimerScreen(
             )
             else -> RunningContent(
                 state = state,
-                onPauseResume = viewModel::togglePause,
+                onPause = viewModel::pause,
+                onResume = viewModel::resume,
+                onStop = { showStopDialog = true },
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding),
             )
         }
     }
+
+    if (showStopDialog) {
+        AlertDialog(
+            onDismissRequest = { showStopDialog = false },
+            title = { Text("End workout early?") },
+            text = { Text("Your progress will not be saved.") },
+            confirmButton = {
+                TextButton(onClick = onDone) { Text("End") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showStopDialog = false }) { Text("Keep going") }
+            },
+        )
+    }
 }
 
 @Composable
 private fun RunningContent(
     state: TimerUiState,
-    onPauseResume: () -> Unit,
+    onPause: () -> Unit,
+    onResume: () -> Unit,
+    onStop: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -109,11 +135,26 @@ private fun RunningContent(
 
         Spacer(Modifier.height(40.dp))
 
-        Button(
-            onClick = onPauseResume,
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text(if (state.status == Status.PAUSED) "Resume" else "Pause")
+            if (state.status == Status.PAUSED) {
+                Button(
+                    onClick = onResume,
+                    modifier = Modifier.weight(1f),
+                ) { Text("Resume") }
+            } else {
+                Button(
+                    onClick = onPause,
+                    modifier = Modifier.weight(1f),
+                ) { Text("Pause") }
+            }
+
+            OutlinedButton(
+                onClick = onStop,
+                modifier = Modifier.weight(1f),
+            ) { Text("Stop") }
         }
     }
 }

@@ -37,18 +37,16 @@ class TimerViewModel(
         startCountdown()
     }
 
-    fun togglePause() {
-        when (_state.value.status) {
-            Status.RUNNING -> {
-                timerJob?.cancel()
-                _state.update { it.copy(status = Status.PAUSED) }
-            }
-            Status.PAUSED -> {
-                _state.update { it.copy(status = Status.RUNNING) }
-                startCountdown()
-            }
-            else -> {}
-        }
+    fun pause() {
+        if (_state.value.status != Status.RUNNING) return
+        timerJob?.cancel()
+        _state.update { it.copy(status = Status.PAUSED) }
+    }
+
+    fun resume() {
+        if (_state.value.status != Status.PAUSED) return
+        _state.update { it.copy(status = Status.RUNNING) }
+        startCountdown()
     }
 
     private fun startCountdown() {
