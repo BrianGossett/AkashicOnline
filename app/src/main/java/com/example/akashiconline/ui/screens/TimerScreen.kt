@@ -31,6 +31,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import com.example.akashiconline.data.PresetEntity
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
@@ -46,11 +47,22 @@ fun TimerScreen(
     onBack: () -> Unit,
     onStart: (TimerConfig) -> Unit = {},
     onLoadPreset: () -> Unit = {},
+    presetToLoad: PresetEntity? = null,
+    onPresetConsumed: () -> Unit = {},
     configViewModel: TimerConfigViewModel = viewModel(),
 ) {
     var workInput by rememberSaveable { mutableStateOf("30") }
     var restInput by rememberSaveable { mutableStateOf("10") }
     var roundsInput by rememberSaveable { mutableStateOf("8") }
+
+    LaunchedEffect(presetToLoad) {
+        if (presetToLoad != null) {
+            workInput = presetToLoad.workSeconds.toString()
+            restInput = presetToLoad.restSeconds.toString()
+            roundsInput = presetToLoad.rounds.toString()
+            onPresetConsumed()
+        }
+    }
 
     val workSeconds = workInput.toIntOrNull()
     val restSeconds = restInput.toIntOrNull()
