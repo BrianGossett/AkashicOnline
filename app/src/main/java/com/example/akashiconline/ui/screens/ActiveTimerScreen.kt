@@ -12,10 +12,14 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import android.app.Activity
+import android.view.WindowManager
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.akashiconline.ui.timer.Status
@@ -23,11 +27,23 @@ import com.example.akashiconline.ui.timer.TimerUiState
 import com.example.akashiconline.ui.timer.TimerViewModel
 
 @Composable
+private fun KeepScreenOn(isRunning: Boolean) {
+    val context = LocalContext.current
+    DisposableEffect(isRunning) {
+        val window = (context as? Activity)?.window
+        if (isRunning) window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        onDispose { window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) }
+    }
+}
+
+@Composable
 fun ActiveTimerScreen(
     viewModel: TimerViewModel,
     onDone: () -> Unit,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+
+    KeepScreenOn(isRunning = state.status == Status.RUNNING)
 
     Scaffold { innerPadding ->
         when (state.status) {
