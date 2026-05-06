@@ -12,6 +12,9 @@ object DatabaseProvider {
                 context.applicationContext,
                 AppDatabase::class.java,
                 "akashic_database"
-            ).build().also { instance = it }
+            )
+            .fallbackToDestructiveMigration(dropAllTables = true)
+            .build()
+            .also { instance = it }
         }
 }
