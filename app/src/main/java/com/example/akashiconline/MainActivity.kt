@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.res.painterResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
@@ -21,7 +22,9 @@ import com.example.akashiconline.ui.screens.FoodScreen
 import com.example.akashiconline.ui.screens.PasswordsScreen
 import com.example.akashiconline.ui.screens.ScheduleScreen
 import com.example.akashiconline.ui.screens.TasksScreen
+import com.example.akashiconline.ui.screens.BuildProgramScreen
 import com.example.akashiconline.ui.screens.PresetScreen
+import com.example.akashiconline.ui.screens.ProgramDetailPlaceholder
 import com.example.akashiconline.ui.screens.ProgramsScreen
 import com.example.akashiconline.ui.screens.TimerScreen
 import com.example.akashiconline.ui.theme.AkashicOnlineTheme
@@ -138,8 +141,36 @@ fun AkashicOnlineApp() {
         composable(AppDestinations.PROGRAMS.route) {
             ProgramsScreen(
                 onBack = { navController.popBackStack() },
-                onNewProgram = { /* WORKOUT-3 */ },
+                onNewProgram = { navController.navigate("program_builder") },
                 onProgramClick = { /* WORKOUT-4 */ },
+            )
+        }
+        composable(
+            route = "program_detail/{programId}",
+            arguments = listOf(navArgument("programId") { type = NavType.StringType }),
+        ) {
+            /* WORKOUT-4 placeholder */
+            ProgramDetailPlaceholder(onBack = { navController.popBackStack() })
+        }
+        composable(
+            route = "program_builder?programId={programId}",
+            arguments = listOf(
+                navArgument("programId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            ),
+        ) { backStackEntry ->
+            val programId = backStackEntry.arguments?.getString("programId")
+            BuildProgramScreen(
+                onBack = { navController.popBackStack() },
+                onSaved = { savedId ->
+                    navController.navigate("program_detail/$savedId") {
+                        popUpTo("program_builder?programId=$programId") { inclusive = true }
+                    }
+                },
+                editProgramId = programId,
             )
         }
     }

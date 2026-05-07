@@ -16,6 +16,12 @@ interface WeekDao {
     @Query("SELECT * FROM weeks WHERE programId = :programId ORDER BY weekNumber ASC")
     fun getByProgram(programId: String): Flow<List<WeekEntity>>
 
+    @Query("SELECT * FROM weeks WHERE programId = :programId ORDER BY weekNumber ASC")
+    suspend fun getByProgramOnce(programId: String): List<WeekEntity>
+
     @Query("DELETE FROM weeks WHERE id = :id")
     suspend fun deleteById(id: String)
+
+    @Query("DELETE FROM weeks WHERE programId = :programId")
+    suspend fun deleteByProgram(programId: String)
 }

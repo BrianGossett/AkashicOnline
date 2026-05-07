@@ -3,12 +3,16 @@ package com.example.akashiconline.data
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ProgramDao {
     @Insert
     suspend fun insert(program: ProgramEntity)
+
+    @Update
+    suspend fun update(program: ProgramEntity)
 
     @Query("SELECT * FROM programs ORDER BY createdAt DESC")
     fun getAll(): Flow<List<ProgramEntity>>
