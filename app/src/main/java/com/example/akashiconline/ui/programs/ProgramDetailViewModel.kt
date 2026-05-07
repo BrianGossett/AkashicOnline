@@ -8,6 +8,7 @@ import androidx.lifecycle.viewmodel.CreationExtras
 import com.example.akashiconline.data.DatabaseProvider
 import com.example.akashiconline.data.DayDetail
 import com.example.akashiconline.data.ProgramDetail
+import com.example.akashiconline.data.SessionLogEntity
 import com.example.akashiconline.data.WeekDetail
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -19,11 +20,16 @@ class ProgramDetailViewModel(
     val programId: String,
 ) : AndroidViewModel(application) {
 
-    private val dao = DatabaseProvider.getDatabase(application).programDao()
+    private val db = DatabaseProvider.getDatabase(application)
+    private val dao = db.programDao()
 
     val detail: StateFlow<ProgramDetail?> = dao.getProgramDetail(programId)
         .map { it?.sorted() }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    val sessionLogs: StateFlow<List<SessionLogEntity>> = db.sessionLogDao()
+        .getLogsForProgram(programId)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     class Factory(private val programId: String) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")

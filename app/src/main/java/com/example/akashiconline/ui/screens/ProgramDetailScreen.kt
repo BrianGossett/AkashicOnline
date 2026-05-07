@@ -23,6 +23,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -32,6 +33,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -42,10 +44,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.akashiconline.R
 import com.example.akashiconline.data.DayDetail
+import com.example.akashiconline.data.SessionLogEntity
 import com.example.akashiconline.data.StepEntity
 import com.example.akashiconline.data.WeekDetail
 import com.example.akashiconline.data.WeekEntity
 import com.example.akashiconline.ui.programs.ProgramDetailViewModel
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -61,6 +67,8 @@ fun ProgramDetailScreen(
     ),
 ) {
     val detail by viewModel.detail.collectAsStateWithLifecycle()
+    val sessionLogs by viewModel.sessionLogs.collectAsStateWithLifecycle()
+    val completedDayIds = remember(sessionLogs) { sessionLogs.mapNotNull { it.dayId }.toSet() }
 
     Scaffold(
         topBar = {
@@ -105,10 +113,25 @@ fun ProgramDetailScreen(
             items(d.weeks, key = { it.week.id }) { weekDetail ->
                 WeekSection(
                     weekDetail = weekDetail,
+                    completedDayIds = completedDayIds,
                     onEditDay = onEditDay,
                     onAddDay = { dayNumber -> onAddDay(weekDetail.week.id, dayNumber) },
                     onRunDay = onRunDay,
                 )
+            }
+
+            if (sessionLogs.isNotEmpty()) {
+                item {
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+                    Text(
+                        "Recent Sessions",
+                        style = MaterialTheme.typography.titleSmall,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                    )
+                }
+                items(sessionLogs, key = { it.id }) { log ->
+                    SessionLogRow(log)
+                }
             }
 
             item { Spacer(Modifier.height(24.dp)) }
@@ -119,6 +142,7 @@ fun ProgramDetailScreen(
 @Composable
 private fun WeekSection(
     weekDetail: WeekDetail,
+    completedDayIds: Set<String>,
     onEditDay: (dayId: String) -> Unit,
     onAddDay: (dayNumber: Int) -> Unit,
     onRunDay: (dayId: String) -> Unit,
@@ -127,6 +151,7 @@ private fun WeekSection(
         WeekPhaseHeader(weekDetail.week)
         DayGrid(
             weekDetail = weekDetail,
+            completedDayIds = completedDayIds,
             onEditDay = onEditDay,
             onAddDay = onAddDay,
             onRunDay = onRunDay,
@@ -173,6 +198,7 @@ private fun WeekPhaseHeader(week: WeekEntity) {
 @Composable
 private fun DayGrid(
     weekDetail: WeekDetail,
+    completedDayIds: Set<String>,
     onEditDay: (dayId: String) -> Unit,
     onAddDay: (dayNumber: Int) -> Unit,
     onRunDay: (dayId: String) -> Unit,
@@ -191,6 +217,7 @@ private fun DayGrid(
             if (dayDetail != null) {
                 FilledDayCell(
                     dayDetail = dayDetail,
+                    hasCompletedLog = dayDetail.day.id in completedDayIds,
                     onEdit = { onEditDay(dayDetail.day.id) },
                     onRun = { onRunDay(dayDetail.day.id) },
                     modifier = Modifier.weight(1f).fillMaxHeight(),
@@ -209,6 +236,7 @@ private fun DayGrid(
 @Composable
 private fun FilledDayCell(
     dayDetail: DayDetail,
+    hasCompletedLog: Boolean,
     onEdit: () -> Unit,
     onRun: () -> Unit,
     modifier: Modifier = Modifier,
@@ -223,6 +251,15 @@ private fun FilledDayCell(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 TypeBadge(dayDetail.day.type, modifier = Modifier.weight(1f))
+                if (hasCompletedLog) {
+                    Icon(
+                        painterResource(R.drawable.ic_check),
+                        contentDescription = "Completed",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(14.dp),
+                    )
+                    Spacer(Modifier.width(2.dp))
+                }
                 IconButton(onClick = onEdit, modifier = Modifier.size(24.dp)) {
                     Icon(
                         painterResource(R.drawable.ic_edit),
@@ -325,6 +362,52 @@ private fun TypeBadge(type: String, modifier: Modifier = Modifier) {
             maxLines = 1,
         )
     }
+}
+
+@Composable
+private fun SessionLogRow(log: SessionLogEntity) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 6.dp),
+    ) {
+        if (log.wasCompleted) {
+            Icon(
+                painterResource(R.drawable.ic_check),
+                contentDescription = "Completed",
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(16.dp),
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .size(16.dp)
+                    .padding(3.dp)
+                    .background(MaterialTheme.colorScheme.outlineVariant, CircleShape),
+            )
+        }
+        Spacer(Modifier.width(8.dp))
+        Text(
+            formatLogDate(log.completedAt),
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.weight(1f),
+        )
+        Text(
+            formatLogElapsed(log.totalElapsedSeconds),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+private fun formatLogDate(epochMillis: Long): String =
+    SimpleDateFormat("MMM d, h:mm a", Locale.getDefault()).format(Date(epochMillis))
+
+private fun formatLogElapsed(seconds: Int): String {
+    val m = seconds / 60
+    val s = seconds % 60
+    return if (m > 0) "${m}m ${s}s" else "${s}s"
 }
 
 private fun stepSummary(steps: List<StepEntity>): String {

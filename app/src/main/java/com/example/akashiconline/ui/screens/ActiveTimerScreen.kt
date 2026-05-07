@@ -22,6 +22,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -52,6 +53,10 @@ fun ActiveTimerScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var showStopDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(state.status) {
+        if (state.status == Status.STOPPED) onDone()
+    }
 
     KeepScreenOn(isRunning = state.status == Status.RUNNING)
 
@@ -90,7 +95,7 @@ fun ActiveTimerScreen(
             title = { Text("End workout early?") },
             text = { Text("Your progress will not be saved.") },
             confirmButton = {
-                TextButton(onClick = onDone) { Text("End") }
+                TextButton(onClick = { viewModel.stopEarly() }) { Text("End") }
             },
             dismissButton = {
                 TextButton(onClick = { showStopDialog = false }) { Text("Keep going") }

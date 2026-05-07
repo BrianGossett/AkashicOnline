@@ -24,7 +24,7 @@ class TimerViewModel internal constructor(
 ) : AndroidViewModel(application) {
 
     private val feedback = FeedbackManager(application)
-    private val db = if (dayId != null) DatabaseProvider.getDatabase(application) else null
+    private val db = DatabaseProvider.getDatabase(application)
 
     private var sessionSteps: List<StepConfig> = presetSteps
     private var currentStepIndex = 0
@@ -98,11 +98,30 @@ class TimerViewModel internal constructor(
         }
     }
 
+    fun stopEarly() {
+        timerJob?.cancel()
+        _state.update { it.copy(status = Status.STOPPED) }
+        viewModelScope.launch { logSession(wasCompleted = false) }
+    }
+
+    private suspend fun logSession(wasCompleted: Boolean) {
+        db.sessionLogDao().insert(
+            com.example.akashiconline.data.SessionLogEntity(
+                id = java.util.UUID.randomUUID().toString(),
+                dayId = dayId,
+                completedAt = System.currentTimeMillis(),
+                totalElapsedSeconds = _state.value.totalElapsedSeconds,
+                wasCompleted = wasCompleted,
+            )
+        )
+    }
+
     private fun advance() {
         val nextIndex = currentStepIndex + 1
         if (nextIndex >= sessionSteps.size) {
             _state.update { it.copy(status = Status.COMPLETE, secondsRemaining = 0) }
             feedback.playComplete()
+            viewModelScope.launch { logSession(wasCompleted = true) }
             return
         }
         currentStepIndex = nextIndex
@@ -124,7 +143,7 @@ class TimerViewModel internal constructor(
     }
 
     private suspend fun loadDaySteps(dayId: String): List<StepConfig> =
-        db!!.stepDao().getByDayOnce(dayId).map { entity ->
+        db.stepDao().getByDayOnce(dayId).map { entity ->
             StepConfig(
                 name = entity.name,
                 durationSeconds = entity.durationSeconds,
