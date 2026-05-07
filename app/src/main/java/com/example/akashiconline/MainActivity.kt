@@ -22,6 +22,7 @@ import com.example.akashiconline.ui.screens.PasswordsScreen
 import com.example.akashiconline.ui.screens.ScheduleScreen
 import com.example.akashiconline.ui.screens.TasksScreen
 import com.example.akashiconline.ui.screens.PresetScreen
+import com.example.akashiconline.ui.screens.ProgramsScreen
 import com.example.akashiconline.ui.screens.TimerScreen
 import com.example.akashiconline.ui.theme.AkashicOnlineTheme
 import com.example.akashiconline.ui.timer.TimerViewModel
@@ -134,6 +135,13 @@ fun AkashicOnlineApp() {
         composable(AppDestinations.TASKS.route) {
             TasksScreen(onBack = { navController.popBackStack() })
         }
+        composable(AppDestinations.PROGRAMS.route) {
+            ProgramsScreen(
+                onBack = { navController.popBackStack() },
+                onNewProgram = { /* WORKOUT-3 */ },
+                onProgramClick = { /* WORKOUT-4 */ },
+            )
+        }
     }
 }
 
@@ -148,4 +156,5 @@ enum class AppDestinations(
     FOOD("Food", R.drawable.ic_food, "III", "food"),
     PASSWORDS("Passwords", R.drawable.ic_lock, "IV", "passwords"),
     TASKS("Tasks", R.drawable.ic_checklist, "V", "tasks"),
+    PROGRAMS("Programs", R.drawable.ic_programs, "VI", "programs"),
 }
