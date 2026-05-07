@@ -162,7 +162,18 @@ fun AkashicOnlineApp() {
                 onAddDay = { weekId, dayNumber ->
                     navController.navigate("day_editor?weekId=$weekId&dayNumber=$dayNumber")
                 },
-                onRunDay = { /* WORKOUT-6 */ },
+                onRunDay = { dayId -> navController.navigate("day_timer/$dayId") },
+            )
+        }
+        composable(
+            route = "day_timer/{dayId}",
+            arguments = listOf(navArgument("dayId") { type = NavType.StringType }),
+        ) { backStackEntry ->
+            val dayId = backStackEntry.arguments!!.getString("dayId")!!
+            val viewModel: TimerViewModel = viewModel(factory = TimerViewModel.FromDay(dayId))
+            ActiveTimerScreen(
+                viewModel = viewModel,
+                onDone = { navController.popBackStack() },
             )
         }
         composable(

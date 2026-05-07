@@ -3,6 +3,7 @@ package com.example.akashiconline.ui.screens
 import android.app.Activity
 import android.view.WindowManager
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -54,14 +56,22 @@ fun ActiveTimerScreen(
     KeepScreenOn(isRunning = state.status == Status.RUNNING)
 
     Scaffold { innerPadding ->
-        when (state.status) {
-            Status.COMPLETE -> CompletionContent(
+        when {
+            state.isLoading -> Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
+            ) { CircularProgressIndicator() }
+
+            state.status == Status.COMPLETE -> CompletionContent(
                 totalElapsedSeconds = state.totalElapsedSeconds,
                 onDone = onDone,
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding),
             )
+
             else -> RunningContent(
                 state = state,
                 onPause = viewModel::pause,
@@ -103,7 +113,7 @@ private fun RunningContent(
         modifier = modifier.padding(horizontal = 32.dp)
     ) {
         Text(
-            text = state.phase.name,
+            text = state.stepName,
             style = MaterialTheme.typography.headlineLarge,
         )
 
@@ -128,7 +138,7 @@ private fun RunningContent(
         Spacer(Modifier.height(16.dp))
 
         Text(
-            text = "Round ${state.currentRound} of ${state.totalRounds}",
+            text = "Step ${state.currentStep} of ${state.totalSteps}",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

@@ -5,7 +5,10 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.CreationExtras
+import com.example.akashiconline.data.DatabaseProvider
+import com.example.akashiconline.data.StepConfig
 import com.example.akashiconline.data.TimerConfig
+import com.example.akashiconline.data.toStepList
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,27 +17,48 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-class TimerViewModel(
+class TimerViewModel internal constructor(
     application: Application,
-    private val config: TimerConfig,
+    presetSteps: List<StepConfig>,
+    private val dayId: String?,
 ) : AndroidViewModel(application) {
 
     private val feedback = FeedbackManager(application)
+    private val db = if (dayId != null) DatabaseProvider.getDatabase(application) else null
+
+    private var sessionSteps: List<StepConfig> = presetSteps
+    private var currentStepIndex = 0
 
     private val _state = MutableStateFlow(
-        TimerUiState(
-            secondsRemaining = config.workSeconds,
-            totalPhaseSeconds = config.workSeconds,
-            totalRounds = config.rounds,
-        )
+        if (dayId != null) {
+            TimerUiState(isLoading = true)
+        } else {
+            presetSteps.firstOrNull().toState(totalSteps = presetSteps.size)
+        }
     )
     val state: StateFlow<TimerUiState> = _state.asStateFlow()
 
     private var timerJob: Job? = null
 
     init {
-        feedback.playWork()
-        startCountdown()
+        if (dayId != null) {
+            viewModelScope.launch {
+                val steps = loadDaySteps(dayId)
+                sessionSteps = steps
+                currentStepIndex = 0
+                val first = steps.firstOrNull()
+                if (first != null) {
+                    _state.value = first.toState(totalSteps = steps.size)
+                    first.playFeedback()
+                    startCountdown()
+                } else {
+                    _state.update { it.copy(isLoading = false, status = Status.COMPLETE) }
+                }
+            }
+        } else if (presetSteps.isNotEmpty()) {
+            presetSteps[0].playFeedback()
+            startCountdown()
+        }
     }
 
     fun pause() {
@@ -61,8 +85,7 @@ class TimerViewModel(
     }
 
     private fun tick() {
-        val current = _state.value
-        if (current.secondsRemaining > 1) {
+        if (_state.value.secondsRemaining > 1) {
             _state.update {
                 it.copy(
                     secondsRemaining = it.secondsRemaining - 1,
@@ -76,42 +99,45 @@ class TimerViewModel(
     }
 
     private fun advance() {
-        val current = _state.value
-        when (current.phase) {
-            Phase.WORK -> {
-                _state.update {
-                    it.copy(
-                        phase = Phase.REST,
-                        secondsRemaining = config.restSeconds,
-                        totalPhaseSeconds = config.restSeconds,
-                    )
-                }
-                feedback.playRest()
-            }
-            Phase.REST -> {
-                if (current.currentRound < current.totalRounds) {
-                    _state.update {
-                        it.copy(
-                            phase = Phase.WORK,
-                            secondsRemaining = config.workSeconds,
-                            totalPhaseSeconds = config.workSeconds,
-                            currentRound = it.currentRound + 1,
-                        )
-                    }
-                    feedback.playWork()
-                } else {
-                    _state.update { it.copy(status = Status.COMPLETE, secondsRemaining = 0) }
-                    feedback.playComplete()
-                }
-            }
+        val nextIndex = currentStepIndex + 1
+        if (nextIndex >= sessionSteps.size) {
+            _state.update { it.copy(status = Status.COMPLETE, secondsRemaining = 0) }
+            feedback.playComplete()
+            return
         }
+        currentStepIndex = nextIndex
+        val next = sessionSteps[nextIndex]
+        _state.update {
+            it.copy(
+                stepName = next.name,
+                isRestStep = next.isRestStep,
+                secondsRemaining = next.durationSeconds,
+                totalPhaseSeconds = next.durationSeconds,
+                currentStep = nextIndex + 1,
+            )
+        }
+        next.playFeedback()
     }
+
+    private fun StepConfig.playFeedback() {
+        if (isRestStep) feedback.playRest() else feedback.playWork()
+    }
+
+    private suspend fun loadDaySteps(dayId: String): List<StepConfig> =
+        db!!.stepDao().getByDayOnce(dayId).map { entity ->
+            StepConfig(
+                name = entity.name,
+                durationSeconds = entity.durationSeconds,
+                isRestStep = entity.isRestStep,
+            )
+        }
 
     override fun onCleared() {
         super.onCleared()
         feedback.release()
     }
 
+    /** Factory for the preset work/rest timer. */
     class Factory(private val config: TimerConfig) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : androidx.lifecycle.ViewModel> create(
@@ -121,7 +147,31 @@ class TimerViewModel(
             val application = checkNotNull(
                 extras[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY]
             )
-            return TimerViewModel(application, config) as T
+            return TimerViewModel(application, config.toStepList(), null) as T
+        }
+    }
+
+    /** Factory for a program day session; steps are loaded from Room on start. */
+    class FromDay(private val dayId: String) : ViewModelProvider.Factory {
+        @Suppress("UNCHECKED_CAST")
+        override fun <T : androidx.lifecycle.ViewModel> create(
+            modelClass: Class<T>,
+            extras: CreationExtras,
+        ): T {
+            val application = checkNotNull(
+                extras[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY]
+            )
+            return TimerViewModel(application, emptyList(), dayId) as T
         }
     }
 }
+
+private fun StepConfig?.toState(totalSteps: Int): TimerUiState = TimerUiState(
+    isLoading = false,
+    stepName = this?.name ?: "",
+    isRestStep = this?.isRestStep ?: false,
+    secondsRemaining = this?.durationSeconds ?: 0,
+    totalPhaseSeconds = this?.durationSeconds ?: 0,
+    currentStep = 1,
+    totalSteps = totalSteps,
+)

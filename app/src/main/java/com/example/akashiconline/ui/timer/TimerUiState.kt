@@ -1,15 +1,15 @@
 package com.example.akashiconline.ui.timer
 
-enum class Phase { WORK, REST }
-
 enum class Status { RUNNING, PAUSED, STOPPED, COMPLETE }
 
 data class TimerUiState(
-    val phase: Phase = Phase.WORK,
-    val secondsRemaining: Int,
-    val totalPhaseSeconds: Int,
-    val currentRound: Int = 1,
-    val totalRounds: Int,
+    val isLoading: Boolean = false,
+    val stepName: String = "",
+    val isRestStep: Boolean = false,
+    val secondsRemaining: Int = 0,
+    val totalPhaseSeconds: Int = 0,
+    val currentStep: Int = 1,
+    val totalSteps: Int = 0,
     val status: Status = Status.RUNNING,
     val totalElapsedSeconds: Int = 0,
 )
