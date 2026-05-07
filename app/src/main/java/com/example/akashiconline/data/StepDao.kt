@@ -16,6 +16,12 @@ interface StepDao {
     @Query("SELECT * FROM steps WHERE dayId = :dayId ORDER BY `order` ASC")
     fun getByDay(dayId: String): Flow<List<StepEntity>>
 
+    @Query("SELECT * FROM steps WHERE dayId = :dayId ORDER BY `order` ASC")
+    suspend fun getByDayOnce(dayId: String): List<StepEntity>
+
     @Query("DELETE FROM steps WHERE id = :id")
     suspend fun deleteById(id: String)
+
+    @Query("DELETE FROM steps WHERE dayId = :dayId")
+    suspend fun deleteByDay(dayId: String)
 }

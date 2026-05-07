@@ -22,6 +22,7 @@ import com.example.akashiconline.ui.screens.PasswordsScreen
 import com.example.akashiconline.ui.screens.ScheduleScreen
 import com.example.akashiconline.ui.screens.TasksScreen
 import com.example.akashiconline.ui.screens.BuildProgramScreen
+import com.example.akashiconline.ui.screens.DayEditorScreen
 import com.example.akashiconline.ui.screens.PresetScreen
 import com.example.akashiconline.ui.screens.ProgramDetailScreen
 import com.example.akashiconline.ui.screens.ProgramsScreen
@@ -155,9 +156,34 @@ fun AkashicOnlineApp() {
                 onEditProgram = {
                     navController.navigate("program_builder?programId=$programId")
                 },
-                onEditDay = { /* WORKOUT-5 */ },
-                onAddDay = { _, _ -> /* WORKOUT-5 */ },
+                onEditDay = { dayId ->
+                    navController.navigate("day_editor?dayId=$dayId")
+                },
+                onAddDay = { weekId, dayNumber ->
+                    navController.navigate("day_editor?weekId=$weekId&dayNumber=$dayNumber")
+                },
                 onRunDay = { /* WORKOUT-6 */ },
+            )
+        }
+        composable(
+            route = "day_editor?dayId={dayId}&weekId={weekId}&dayNumber={dayNumber}",
+            arguments = listOf(
+                navArgument("dayId") {
+                    type = NavType.StringType; nullable = true; defaultValue = null
+                },
+                navArgument("weekId") {
+                    type = NavType.StringType; nullable = true; defaultValue = null
+                },
+                navArgument("dayNumber") { type = NavType.IntType; defaultValue = 1 },
+            ),
+        ) { backStackEntry ->
+            val args = backStackEntry.arguments!!
+            DayEditorScreen(
+                dayId = args.getString("dayId"),
+                weekId = args.getString("weekId"),
+                dayNumber = args.getInt("dayNumber"),
+                onBack = { navController.popBackStack() },
+                onSaved = { navController.popBackStack() },
             )
         }
         composable(
