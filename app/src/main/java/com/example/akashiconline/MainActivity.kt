@@ -6,7 +6,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.res.painterResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
@@ -24,7 +23,7 @@ import com.example.akashiconline.ui.screens.ScheduleScreen
 import com.example.akashiconline.ui.screens.TasksScreen
 import com.example.akashiconline.ui.screens.BuildProgramScreen
 import com.example.akashiconline.ui.screens.PresetScreen
-import com.example.akashiconline.ui.screens.ProgramDetailPlaceholder
+import com.example.akashiconline.ui.screens.ProgramDetailScreen
 import com.example.akashiconline.ui.screens.ProgramsScreen
 import com.example.akashiconline.ui.screens.TimerScreen
 import com.example.akashiconline.ui.theme.AkashicOnlineTheme
@@ -142,15 +141,24 @@ fun AkashicOnlineApp() {
             ProgramsScreen(
                 onBack = { navController.popBackStack() },
                 onNewProgram = { navController.navigate("program_builder") },
-                onProgramClick = { /* WORKOUT-4 */ },
+                onProgramClick = { programId -> navController.navigate("program_detail/$programId") },
             )
         }
         composable(
             route = "program_detail/{programId}",
             arguments = listOf(navArgument("programId") { type = NavType.StringType }),
-        ) {
-            /* WORKOUT-4 placeholder */
-            ProgramDetailPlaceholder(onBack = { navController.popBackStack() })
+        ) { backStackEntry ->
+            val programId = backStackEntry.arguments!!.getString("programId")!!
+            ProgramDetailScreen(
+                programId = programId,
+                onBack = { navController.popBackStack() },
+                onEditProgram = {
+                    navController.navigate("program_builder?programId=$programId")
+                },
+                onEditDay = { /* WORKOUT-5 */ },
+                onAddDay = { _, _ -> /* WORKOUT-5 */ },
+                onRunDay = { /* WORKOUT-6 */ },
+            )
         }
         composable(
             route = "program_builder?programId={programId}",

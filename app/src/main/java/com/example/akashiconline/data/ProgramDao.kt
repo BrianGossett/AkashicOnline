@@ -3,6 +3,7 @@ package com.example.akashiconline.data
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
@@ -29,6 +30,10 @@ interface ProgramDao {
 
     @Query("SELECT * FROM programs WHERE id = :id")
     suspend fun getById(id: String): ProgramEntity?
+
+    @Transaction
+    @Query("SELECT * FROM programs WHERE id = :programId")
+    fun getProgramDetail(programId: String): Flow<ProgramDetail?>
 
     @Query("DELETE FROM programs WHERE id = :id")
     suspend fun deleteById(id: String)
