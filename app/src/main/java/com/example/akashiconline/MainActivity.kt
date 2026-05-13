@@ -1,11 +1,19 @@
 package com.example.akashiconline
 
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.longPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
@@ -17,18 +25,25 @@ import com.example.akashiconline.data.PresetEntity
 import com.example.akashiconline.data.TimerConfig
 import com.example.akashiconline.ui.screens.ActiveTimerScreen
 import com.example.akashiconline.ui.screens.BookMenuScreen
-import com.example.akashiconline.ui.screens.FoodScreen
-import com.example.akashiconline.ui.screens.PasswordsScreen
-import com.example.akashiconline.ui.screens.ScheduleScreen
-import com.example.akashiconline.ui.screens.TasksScreen
 import com.example.akashiconline.ui.screens.BuildProgramScreen
+import com.example.akashiconline.ui.screens.CalendarScreen
 import com.example.akashiconline.ui.screens.DayEditorScreen
+import com.example.akashiconline.ui.screens.DiaryScreen
+import com.example.akashiconline.ui.screens.FoodScreen
+import com.example.akashiconline.ui.screens.NotesScreen
+import com.example.akashiconline.ui.screens.PasswordsScreen
 import com.example.akashiconline.ui.screens.PresetScreen
 import com.example.akashiconline.ui.screens.ProgramDetailScreen
 import com.example.akashiconline.ui.screens.ProgramsScreen
+import com.example.akashiconline.ui.screens.TasksScreen
 import com.example.akashiconline.ui.screens.TimerScreen
+import com.example.akashiconline.ui.screens.WorkoutScreen
 import com.example.akashiconline.ui.theme.AkashicOnlineTheme
 import com.example.akashiconline.ui.timer.TimerViewModel
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+
+private val Context.lastUsedDataStore: DataStore<Preferences> by preferencesDataStore(name = "last_used")
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -45,11 +60,44 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun AkashicOnlineApp() {
     val navController = rememberNavController()
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(Unit) {
+        context.lastUsedDataStore.data.first().let { prefs ->
+            AppDestinations.entries.forEach { dest ->
+                dest.lastUsedAt = prefs[longPreferencesKey("last_used_${dest.route}")] ?: 0L
+            }
+        }
+    }
+
+    fun navigateTo(dest: AppDestinations) {
+        val now = System.currentTimeMillis()
+        dest.lastUsedAt = now
+        scope.launch {
+            context.lastUsedDataStore.edit { prefs ->
+                prefs[longPreferencesKey("last_used_${dest.route}")] = now
+            }
+        }
+        navController.navigate(dest.route)
+    }
+
     NavHost(navController = navController, startDestination = "book_menu") {
         composable("book_menu") {
-            BookMenuScreen(onNavigate = { navController.navigate(it.route) })
+            BookMenuScreen(onNavigate = { dest -> navigateTo(dest) })
         }
-        composable(AppDestinations.TIMER.route) { backStackEntry ->
+
+        // ── Chapter I: Workout (hub) ──────────────────────────────────────────
+        composable(AppDestinations.WORKOUT.route) {
+            WorkoutScreen(
+                onBack = { navController.popBackStack() },
+                onTimerClick = { navController.navigate("timer") },
+                onProgramsClick = { navController.navigate("programs") },
+            )
+        }
+
+        // Timer sub-routes
+        composable("timer") { backStackEntry ->
             val savedStateHandle = backStackEntry.savedStateHandle
             val presetToLoad by savedStateHandle
                 .getStateFlow<String?>("preset_id", null)
@@ -106,9 +154,9 @@ fun AkashicOnlineApp() {
                 restSeconds = args.getInt("restSeconds"),
                 rounds = args.getInt("rounds"),
             )
-            val viewModel: TimerViewModel = viewModel(factory = TimerViewModel.Factory(config))
+            val timerVm: TimerViewModel = viewModel(factory = TimerViewModel.Factory(config))
             ActiveTimerScreen(
-                viewModel = viewModel,
+                viewModel = timerVm,
                 onDone = { navController.popBackStack() },
             )
         }
@@ -126,19 +174,9 @@ fun AkashicOnlineApp() {
                 },
             )
         }
-        composable(AppDestinations.SCHEDULE.route) {
-            ScheduleScreen(onBack = { navController.popBackStack() })
-        }
-        composable(AppDestinations.FOOD.route) {
-            FoodScreen(onBack = { navController.popBackStack() })
-        }
-        composable(AppDestinations.PASSWORDS.route) {
-            PasswordsScreen(onBack = { navController.popBackStack() })
-        }
-        composable(AppDestinations.TASKS.route) {
-            TasksScreen(onBack = { navController.popBackStack() })
-        }
-        composable(AppDestinations.PROGRAMS.route) {
+
+        // Programs sub-routes
+        composable("programs") {
             ProgramsScreen(
                 onBack = { navController.popBackStack() },
                 onNewProgram = { navController.navigate("program_builder") },
@@ -170,9 +208,9 @@ fun AkashicOnlineApp() {
             arguments = listOf(navArgument("dayId") { type = NavType.StringType }),
         ) { backStackEntry ->
             val dayId = backStackEntry.arguments!!.getString("dayId")!!
-            val viewModel: TimerViewModel = viewModel(factory = TimerViewModel.FromDay(dayId))
+            val dayVm: TimerViewModel = viewModel(factory = TimerViewModel.FromDay(dayId))
             ActiveTimerScreen(
-                viewModel = viewModel,
+                viewModel = dayVm,
                 onDone = { navController.popBackStack() },
             )
         }
@@ -218,6 +256,26 @@ fun AkashicOnlineApp() {
                 editProgramId = programId,
             )
         }
+
+        // ── Chapter II–VII: standalone chapters ──────────────────────────────
+        composable(AppDestinations.FOOD.route) {
+            FoodScreen(onBack = { navController.popBackStack() })
+        }
+        composable(AppDestinations.TASKS.route) {
+            TasksScreen(onBack = { navController.popBackStack() })
+        }
+        composable(AppDestinations.DIARY.route) {
+            DiaryScreen(onBack = { navController.popBackStack() })
+        }
+        composable(AppDestinations.NOTES.route) {
+            NotesScreen(onBack = { navController.popBackStack() })
+        }
+        composable(AppDestinations.CALENDAR.route) {
+            CalendarScreen(onBack = { navController.popBackStack() })
+        }
+        composable(AppDestinations.PASSWORDS.route) {
+            PasswordsScreen(onBack = { navController.popBackStack() })
+        }
     }
 }
 
@@ -227,10 +285,13 @@ enum class AppDestinations(
     val chapterNumber: String,
     val route: String,
 ) {
-    TIMER("Timer", R.drawable.ic_timer, "I", "timer"),
-    SCHEDULE("Schedule", R.drawable.ic_calendar, "II", "schedule"),
-    FOOD("Food", R.drawable.ic_food, "III", "food"),
-    PASSWORDS("Passwords", R.drawable.ic_lock, "IV", "passwords"),
-    TASKS("Tasks", R.drawable.ic_checklist, "V", "tasks"),
-    PROGRAMS("Programs", R.drawable.ic_programs, "VI", "programs"),
+    WORKOUT("Workout", R.drawable.ic_workout, "I", "workout"),
+    FOOD("Food Tracker", R.drawable.ic_food, "II", "food"),
+    TASKS("Tasks", R.drawable.ic_checklist, "III", "tasks"),
+    DIARY("Diary", R.drawable.ic_diary, "IV", "diary"),
+    NOTES("Notes", R.drawable.ic_notes, "V", "notes"),
+    CALENDAR("Calendar", R.drawable.ic_calendar, "VI", "calendar"),
+    PASSWORDS("Passwords", R.drawable.ic_lock, "VII", "passwords");
+
+    @Volatile var lastUsedAt: Long = 0L
 }
