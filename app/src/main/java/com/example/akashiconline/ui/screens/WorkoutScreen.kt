@@ -345,12 +345,112 @@ private fun workoutMeta(rounds: List<RoundEntity>): String {
 fun ScheduledTab(
     onEditWorkout: (workoutId: String) -> Unit,
     onStartWorkout: (workoutId: String) -> Unit,
+    viewModel: WorkoutViewModel = viewModel(),
 ) {
-    Box(
-        contentAlignment = Alignment.Center,
+    val scheduled by viewModel.scheduled.collectAsStateWithLifecycle()
+    val today = remember { java.time.LocalDate.now() }
+
+    if (scheduled.isEmpty()) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(32.dp),
+        ) {
+            Text(
+                text = "No scheduled workouts — schedule one when creating or editing a workout",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            )
+        }
+        return
+    }
+
+    // Group by calendar date (epoch millis → LocalDate)
+    val grouped = scheduled.groupBy { item ->
+        java.time.Instant.ofEpochMilli(item.workout.scheduledDate!!)
+            .atZone(java.time.ZoneId.systemDefault())
+            .toLocalDate()
+    }.entries.sortedBy { it.key }
+
+    LazyColumn(
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(
+            start = 16.dp, end = 16.dp, top = 12.dp, bottom = 16.dp,
+        ),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
         modifier = Modifier.fillMaxSize(),
     ) {
-        Text("Scheduled — coming soon", style = MaterialTheme.typography.bodyMedium)
+        grouped.forEach { (date, items) ->
+            item(key = date.toString()) {
+                Text(
+                    text = date.format(java.time.format.DateTimeFormatter.ofPattern("EEE, MMM d")),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 12.dp, bottom = 4.dp),
+                )
+            }
+            items(items, key = { it.workout.id }) { item ->
+                val isMissed = date.isBefore(today)
+                ScheduledWorkoutCard(
+                    item = item,
+                    isMissed = isMissed,
+                    onStart = { onStartWorkout(item.workout.id) },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ScheduledWorkoutCard(
+    item: WorkoutWithRounds,
+    isMissed: Boolean,
+    onStart: () -> Unit,
+) {
+    ElevatedCard(
+        onClick = onStart,
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = item.workout.name,
+                    style = MaterialTheme.typography.titleSmall,
+                    color = if (isMissed) MaterialTheme.colorScheme.onSurfaceVariant
+                            else MaterialTheme.colorScheme.onSurface,
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = workoutMeta(item.rounds),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (isMissed) {
+                Box(
+                    modifier = Modifier
+                        .background(
+                            MaterialTheme.colorScheme.surfaceVariant,
+                            RoundedCornerShape(4.dp),
+                        )
+                        .padding(horizontal = 6.dp, vertical = 2.dp),
+                ) {
+                    Text(
+                        text = "missed",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
     }
 }
 

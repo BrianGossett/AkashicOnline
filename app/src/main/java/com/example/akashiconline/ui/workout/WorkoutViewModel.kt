@@ -23,14 +23,26 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
     private val workoutDao = db.workoutDao()
     private val roundDao = db.roundDao()
 
+    private val allRounds = roundDao.getAllRounds()
+
     val workouts: StateFlow<List<WorkoutWithRounds>> = combine(
         workoutDao.getAll(),
-        roundDao.getAllRounds(),
-    ) { workouts, allRounds ->
-        val roundsByWorkout = allRounds.groupBy { it.workoutId }
-        workouts.map { workout ->
-            WorkoutWithRounds(workout, roundsByWorkout[workout.id] ?: emptyList())
-        }
+        allRounds,
+    ) { workouts, rounds ->
+        val byWorkout = rounds.groupBy { it.workoutId }
+        workouts.map { WorkoutWithRounds(it, byWorkout[it.id] ?: emptyList()) }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = emptyList(),
+    )
+
+    val scheduled: StateFlow<List<WorkoutWithRounds>> = combine(
+        workoutDao.getScheduled(),
+        allRounds,
+    ) { workouts, rounds ->
+        val byWorkout = rounds.groupBy { it.workoutId }
+        workouts.map { WorkoutWithRounds(it, byWorkout[it.id] ?: emptyList()) }
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
