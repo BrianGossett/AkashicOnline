@@ -1,6 +1,5 @@
 package com.example.akashiconline
 
-import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -9,11 +8,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
@@ -23,6 +19,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.akashiconline.data.PresetEntity
 import com.example.akashiconline.data.TimerConfig
+import com.example.akashiconline.data.lastUsedDataStore
 import com.example.akashiconline.ui.screens.ActiveTimerScreen
 import com.example.akashiconline.ui.screens.BookMenuScreen
 import com.example.akashiconline.ui.screens.BuildProgramScreen
@@ -30,6 +27,7 @@ import com.example.akashiconline.ui.screens.CalendarScreen
 import com.example.akashiconline.ui.screens.DayEditorScreen
 import com.example.akashiconline.ui.screens.DiaryScreen
 import com.example.akashiconline.ui.screens.FoodScreen
+import com.example.akashiconline.ui.screens.HomeScreen
 import com.example.akashiconline.ui.screens.NotesScreen
 import com.example.akashiconline.ui.screens.PasswordsScreen
 import com.example.akashiconline.ui.screens.PresetScreen
@@ -42,8 +40,6 @@ import com.example.akashiconline.ui.theme.AkashicOnlineTheme
 import com.example.akashiconline.ui.timer.TimerViewModel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-
-private val Context.lastUsedDataStore: DataStore<Preferences> by preferencesDataStore(name = "last_used")
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -82,7 +78,15 @@ fun AkashicOnlineApp() {
         navController.navigate(dest.route)
     }
 
-    NavHost(navController = navController, startDestination = "book_menu") {
+    NavHost(navController = navController, startDestination = "home") {
+
+        // ── Home ──────────────────────────────────────────────────────────────
+        composable("home") {
+            HomeScreen(
+                onNavigate = { dest -> navigateTo(dest) },
+                onOpenBookMenu = { navController.navigate("book_menu") },
+            )
+        }
         composable("book_menu") {
             BookMenuScreen(onNavigate = { dest -> navigateTo(dest) })
         }
