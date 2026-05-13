@@ -11,8 +11,9 @@ import androidx.room.RoomDatabase
         DayEntity::class,
         StepEntity::class,
         SessionLogEntity::class,
+        CalendarEventEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -22,4 +23,5 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun dayDao(): DayDao
     abstract fun stepDao(): StepDao
     abstract fun sessionLogDao(): SessionLogDao
+    abstract fun calendarEventDao(): CalendarEventDao
 }
