@@ -97,10 +97,14 @@ fun AkashicOnlineApp() {
         composable(AppDestinations.WORKOUT.route) {
             WorkoutScreen(
                 onBack = { navController.popBackStack() },
-                onTimerClick = { navController.navigate("timer") },
-                onProgramsClick = { navController.navigate("programs") },
                 onCreateWorkout = { navController.navigate("workout/create") },
-                onScheduledClick = { navController.navigate("workout/scheduled") },
+                onEditWorkout = { workoutId -> navController.navigate("workout/edit/$workoutId") },
+                onStartWorkout = { workoutId -> navController.navigate("workout/start/$workoutId") },
+                onQuickTimerStart = { config ->
+                    navController.navigate(
+                        "active_timer/${config.workSeconds}/${config.restSeconds}/${config.rounds}"
+                    )
+                },
             )
         }
         composable("workout/create") {
