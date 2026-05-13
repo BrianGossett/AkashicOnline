@@ -14,8 +14,9 @@ import androidx.room.RoomDatabase
         CalendarEventEntity::class,
         WorkoutEntity::class,
         RoundEntity::class,
+        WorkoutSessionLogEntity::class,
     ],
-    version = 6,
+    version = 7,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -28,4 +29,5 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun calendarEventDao(): CalendarEventDao
     abstract fun workoutDao(): WorkoutDao
     abstract fun roundDao(): RoundDao
+    abstract fun workoutSessionLogDao(): WorkoutSessionLogDao
 }
