@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,9 +13,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -23,8 +29,10 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Tab
@@ -43,6 +51,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -51,6 +60,7 @@ import com.example.akashiconline.R
 import com.example.akashiconline.data.RoundEntity
 import com.example.akashiconline.data.TimerConfig
 import com.example.akashiconline.data.WorkoutEntity
+import com.example.akashiconline.ui.timer.TimerConfigViewModel
 import com.example.akashiconline.ui.workout.WorkoutViewModel
 import com.example.akashiconline.ui.workout.WorkoutWithRounds
 
@@ -455,11 +465,123 @@ private fun ScheduledWorkoutCard(
 }
 
 @Composable
-fun QuickTimerTab(onStart: (TimerConfig) -> Unit) {
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = Modifier.fillMaxSize(),
+fun QuickTimerTab(
+    onStart: (TimerConfig) -> Unit,
+    configViewModel: TimerConfigViewModel = viewModel(),
+) {
+    var workInput by rememberSaveable { mutableStateOf("20") }
+    var restInput by rememberSaveable { mutableStateOf("10") }
+    var roundsInput by rememberSaveable { mutableStateOf("8") }
+
+    val presets by configViewModel.presets.collectAsStateWithLifecycle()
+
+    val workSeconds = workInput.toIntOrNull()
+    val restSeconds = restInput.toIntOrNull()
+    val rounds = roundsInput.toIntOrNull()
+
+    val workError = workSeconds == null || workSeconds <= 0
+    val restError = restSeconds == null || restSeconds <= 0
+    val roundsError = rounds == null || rounds <= 0
+    val isValid = !workError && !restError && !roundsError
+
+    val summaryText = if (isValid) {
+        "Total: ~${quickFormatDuration((workSeconds!! + restSeconds!!) * rounds!!)}"
+    } else {
+        "Total: —"
+    }
+
+    Column(
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 24.dp, vertical = 16.dp),
     ) {
-        Text("Quick Timer — coming soon", style = MaterialTheme.typography.bodyMedium)
+        OutlinedTextField(
+            value = workInput,
+            onValueChange = { workInput = it },
+            label = { Text("Work (seconds)") },
+            isError = workError,
+            supportingText = if (workError) {
+                { Text("Enter a number greater than 0") }
+            } else null,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        OutlinedTextField(
+            value = restInput,
+            onValueChange = { restInput = it },
+            label = { Text("Rest (seconds)") },
+            isError = restError,
+            supportingText = if (restError) {
+                { Text("Enter a number greater than 0") }
+            } else null,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        OutlinedTextField(
+            value = roundsInput,
+            onValueChange = { roundsInput = it },
+            label = { Text("Rounds") },
+            isError = roundsError,
+            supportingText = if (roundsError) {
+                { Text("Enter a number greater than 0") }
+            } else null,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        Text(
+            text = summaryText,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+
+        Button(
+            onClick = {
+                if (isValid) onStart(TimerConfig(workSeconds!!, restSeconds!!, rounds!!))
+            },
+            enabled = isValid,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text("▶ Start")
+        }
+
+        if (presets.isNotEmpty()) {
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = "Saved presets",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                contentPadding = PaddingValues(vertical = 4.dp),
+            ) {
+                items(presets, key = { it.id }) { preset ->
+                    SuggestionChip(
+                        onClick = {
+                            workInput = preset.workSeconds.toString()
+                            restInput = preset.restSeconds.toString()
+                            roundsInput = preset.rounds.toString()
+                        },
+                        label = { Text(preset.name) },
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun quickFormatDuration(totalSeconds: Int): String {
+    val minutes = totalSeconds / 60
+    val seconds = totalSeconds % 60
+    return when {
+        minutes > 0 && seconds > 0 -> "$minutes min $seconds sec"
+        minutes > 0 -> "$minutes min"
+        else -> "$seconds sec"
     }
 }
