@@ -35,6 +35,7 @@ import com.example.akashiconline.ui.screens.ProgramDetailScreen
 import com.example.akashiconline.ui.screens.ProgramsScreen
 import com.example.akashiconline.ui.screens.TasksScreen
 import com.example.akashiconline.ui.screens.TimerScreen
+import com.example.akashiconline.ui.screens.ActiveWorkoutScreen
 import com.example.akashiconline.ui.screens.CreateWorkoutScreen
 import com.example.akashiconline.ui.screens.ScheduledWorkoutsScreen
 import com.example.akashiconline.ui.screens.WorkoutScreen
@@ -99,12 +100,22 @@ fun AkashicOnlineApp() {
                 onBack = { navController.popBackStack() },
                 onCreateWorkout = { navController.navigate("workout/create") },
                 onEditWorkout = { workoutId -> navController.navigate("workout/edit/$workoutId") },
-                onStartWorkout = { workoutId -> navController.navigate("workout/start/$workoutId") },
+                onStartWorkout = { workoutId -> navController.navigate("active_workout/$workoutId") },
                 onQuickTimerStart = { config ->
                     navController.navigate(
                         "active_timer/${config.workSeconds}/${config.restSeconds}/${config.rounds}"
                     )
                 },
+            )
+        }
+        composable(
+            route = "active_workout/{workoutId}",
+            arguments = listOf(navArgument("workoutId") { type = NavType.StringType }),
+        ) { backStackEntry ->
+            val workoutId = backStackEntry.arguments!!.getString("workoutId")!!
+            ActiveWorkoutScreen(
+                workoutId = workoutId,
+                onDone = { navController.popBackStack() },
             )
         }
         composable("workout/create") {
