@@ -29,6 +29,8 @@ fun WorkoutScreen(
     onBack: () -> Unit,
     onTimerClick: () -> Unit,
     onProgramsClick: () -> Unit,
+    onCreateWorkout: () -> Unit,
+    onScheduledClick: () -> Unit,
 ) {
     Scaffold(
         topBar = {
@@ -46,7 +48,7 @@ fun WorkoutScreen(
             item {
                 WorkoutSectionRow(
                     icon = R.drawable.ic_timer,
-                    label = "Timer",
+                    label = "Quick Timer",
                     onClick = onTimerClick,
                 )
                 HorizontalDivider()
@@ -56,6 +58,22 @@ fun WorkoutScreen(
                     icon = R.drawable.ic_programs,
                     label = "Programs",
                     onClick = onProgramsClick,
+                )
+                HorizontalDivider()
+            }
+            item {
+                WorkoutSectionRow(
+                    icon = R.drawable.ic_add,
+                    label = "New Workout",
+                    onClick = onCreateWorkout,
+                )
+                HorizontalDivider()
+            }
+            item {
+                WorkoutSectionRow(
+                    icon = R.drawable.ic_calendar,
+                    label = "Scheduled Workouts",
+                    onClick = onScheduledClick,
                 )
                 HorizontalDivider()
             }
