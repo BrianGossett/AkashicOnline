@@ -12,8 +12,10 @@ import androidx.room.RoomDatabase
         StepEntity::class,
         SessionLogEntity::class,
         CalendarEventEntity::class,
+        WorkoutEntity::class,
+        RoundEntity::class,
     ],
-    version = 5,
+    version = 6,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -24,4 +26,6 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun stepDao(): StepDao
     abstract fun sessionLogDao(): SessionLogDao
     abstract fun calendarEventDao(): CalendarEventDao
+    abstract fun workoutDao(): WorkoutDao
+    abstract fun roundDao(): RoundDao
 }
