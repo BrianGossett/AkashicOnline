@@ -37,7 +37,7 @@ import com.example.akashiconline.ui.screens.EditTaskScreen
 import com.example.akashiconline.ui.screens.TaskDetailScreen
 import com.example.akashiconline.ui.screens.TasksScreen
 import com.example.akashiconline.ui.screens.TimerScreen
-import com.example.akashiconline.ui.screens.UpcomingTasksScreen
+import com.example.akashiconline.ui.screens.UpcomingScreen
 import com.example.akashiconline.ui.screens.ActiveWorkoutScreen
 import com.example.akashiconline.ui.screens.CreateWorkoutScreen
 import com.example.akashiconline.ui.screens.ScheduledWorkoutsScreen
@@ -337,7 +337,11 @@ fun AkashicOnlineApp() {
             )
         }
         composable("tasks/upcoming") {
-            UpcomingTasksScreen(onBack = { navController.popBackStack() })
+            UpcomingScreen(
+                onBack = { navController.popBackStack() },
+                onOpenTask = { taskId -> navController.navigate("tasks/detail/$taskId") },
+                onNewTask = { navController.navigate("tasks/create") },
+            )
         }
         composable(AppDestinations.DIARY.route) {
             DiaryScreen(onBack = { navController.popBackStack() })
