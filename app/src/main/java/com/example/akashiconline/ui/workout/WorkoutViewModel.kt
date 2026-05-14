@@ -68,6 +68,7 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
     fun scheduleWorkout(
         workoutId: String,
         dateMillis: Long,
+        timeMinutes: Int?,
         repeatRule: String?,
         reminderMinutes: Int?,
     ) {
@@ -76,6 +77,7 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
             workoutDao.insert(
                 existing.copy(
                     scheduledDate = dateMillis,
+                    scheduledTimeMinutes = timeMinutes,
                     repeatRule = repeatRule,
                     reminderMinutesBefore = reminderMinutes,
                 )
@@ -93,7 +95,8 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
                     title = existing.name,
                     subtitle = null,
                     isCompleted = false,
-                    isAllDay = true,
+                    isAllDay = timeMinutes == null,
+                    timeMinutes = timeMinutes,
                     createdAt = System.currentTimeMillis(),
                 )
             )

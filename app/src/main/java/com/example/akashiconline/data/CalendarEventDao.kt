@@ -18,13 +18,19 @@ interface CalendarEventDao {
     @Query("DELETE FROM calendar_events WHERE id = :id")
     suspend fun delete(id: String)
 
-    @Query("SELECT * FROM calendar_events WHERE dateEpochDay = :dateEpochDay ORDER BY createdAt ASC")
+    @Query("""
+        SELECT * FROM calendar_events WHERE dateEpochDay = :dateEpochDay
+        ORDER BY CASE WHEN timeMinutes IS NULL THEN 1 ELSE 0 END ASC, timeMinutes ASC, createdAt ASC
+    """)
     fun getEventsForDate(dateEpochDay: Long): Flow<List<CalendarEventEntity>>
 
     @Query("""
         SELECT * FROM calendar_events
         WHERE dateEpochDay >= :startEpochDay AND dateEpochDay <= :endEpochDay
-        ORDER BY dateEpochDay ASC, createdAt ASC
+        ORDER BY dateEpochDay ASC,
+            CASE WHEN timeMinutes IS NULL THEN 1 ELSE 0 END ASC,
+            timeMinutes ASC,
+            createdAt ASC
     """)
     fun getEventsForDateRange(startEpochDay: Long, endEpochDay: Long): Flow<List<CalendarEventEntity>>
 

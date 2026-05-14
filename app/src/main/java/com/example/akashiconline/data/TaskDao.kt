@@ -24,6 +24,8 @@ interface TaskDao {
             isCompleted ASC,
             CASE WHEN dueDateEpochDay IS NULL THEN 1 ELSE 0 END ASC,
             dueDateEpochDay ASC,
+            CASE WHEN dueTimeMinutes IS NULL THEN 1 ELSE 0 END ASC,
+            dueTimeMinutes ASC,
             createdAt ASC
     """)
     fun getAll(): Flow<List<TaskEntity>>
@@ -33,9 +35,19 @@ interface TaskDao {
         WHERE isCompleted = 0
           AND dueDateEpochDay IS NOT NULL
           AND dueDateEpochDay >= :todayEpochDay
-        ORDER BY dueDateEpochDay ASC
+        ORDER BY dueDateEpochDay ASC,
+            CASE WHEN dueTimeMinutes IS NULL THEN 1 ELSE 0 END ASC,
+            dueTimeMinutes ASC
     """)
     fun getUpcoming(todayEpochDay: Long): Flow<List<TaskEntity>>
+
+    @Query("""
+        SELECT * FROM tasks
+        WHERE isCompleted = 0
+          AND dueDateEpochDay = :dateEpochDay
+        ORDER BY CASE WHEN dueTimeMinutes IS NULL THEN 1 ELSE 0 END ASC, dueTimeMinutes ASC
+    """)
+    suspend fun getTasksForDay(dateEpochDay: Long): List<TaskEntity>
 
     @Query("""
         SELECT * FROM tasks

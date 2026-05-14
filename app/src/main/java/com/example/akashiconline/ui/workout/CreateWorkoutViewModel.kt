@@ -43,6 +43,7 @@ class CreateWorkoutViewModel(
     val rounds = mutableStateListOf<RoundDraft>()
     var scheduleEnabled by mutableStateOf(false)
     var scheduledDateMillis by mutableStateOf<Long?>(null)
+    var scheduledTimeMinutes by mutableStateOf<Int?>(null)
     var repeatRule by mutableStateOf<String?>(null)
     var reminderMinutesBefore by mutableStateOf<Int?>(null)
     var isSaving by mutableStateOf(false)
@@ -61,6 +62,7 @@ class CreateWorkoutViewModel(
                 val workout = workoutDao.getById(workoutId) ?: return@launch
                 name = workout.name
                 scheduledDateMillis = workout.scheduledDate
+                scheduledTimeMinutes = workout.scheduledTimeMinutes
                 repeatRule = workout.repeatRule
                 reminderMinutesBefore = workout.reminderMinutesBefore
                 scheduleEnabled = workout.scheduledDate != null
@@ -121,11 +123,13 @@ class CreateWorkoutViewModel(
         viewModelScope.launch {
             val id = workoutId ?: UUID.randomUUID().toString()
             val schedDate = if (scheduleEnabled) scheduledDateMillis else null
+            val schedTime = if (scheduleEnabled) scheduledTimeMinutes else null
 
             val workout = WorkoutEntity(
                 id = id,
                 name = name.trim(),
                 scheduledDate = schedDate,
+                scheduledTimeMinutes = schedTime,
                 repeatRule = if (scheduleEnabled) repeatRule else null,
                 reminderMinutesBefore = if (scheduleEnabled) reminderMinutesBefore else null,
                 createdAt = System.currentTimeMillis(),
@@ -164,7 +168,8 @@ class CreateWorkoutViewModel(
                         title = name.trim(),
                         subtitle = null,
                         isCompleted = false,
-                        isAllDay = true,
+                        isAllDay = schedTime == null,
+                        timeMinutes = schedTime,
                         createdAt = System.currentTimeMillis(),
                     )
                 )

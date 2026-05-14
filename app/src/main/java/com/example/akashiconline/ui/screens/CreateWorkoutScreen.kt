@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -30,8 +31,10 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -46,6 +49,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.akashiconline.R
+import com.example.akashiconline.ui.util.formatTimeMinutes
 import com.example.akashiconline.ui.workout.CreateWorkoutViewModel
 import com.example.akashiconline.ui.workout.RoundDraft
 import java.time.Instant
@@ -66,9 +70,30 @@ fun CreateWorkoutScreen(
     }
 
     var showDatePicker by remember { mutableStateOf(false) }
+    var showTimePicker by remember { mutableStateOf(false) }
     val datePickerState = rememberDatePickerState(
         initialSelectedDateMillis = viewModel.scheduledDateMillis,
     )
+    val timePickerState = rememberTimePickerState(
+        initialHour = viewModel.scheduledTimeMinutes?.div(60) ?: 9,
+        initialMinute = viewModel.scheduledTimeMinutes?.rem(60) ?: 0,
+    )
+
+    if (showTimePicker) {
+        AlertDialog(
+            onDismissRequest = { showTimePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.scheduledTimeMinutes = timePickerState.hour * 60 + timePickerState.minute
+                    showTimePicker = false
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showTimePicker = false }) { Text("Cancel") }
+            },
+            text = { TimePicker(state = timePickerState) },
+        )
+    }
 
     if (showDatePicker) {
         DatePickerDialog(
@@ -170,6 +195,7 @@ fun CreateWorkoutScreen(
                             viewModel.scheduleEnabled = enabled
                             if (!enabled) {
                                 viewModel.scheduledDateMillis = null
+                                viewModel.scheduledTimeMinutes = null
                                 viewModel.repeatRule = null
                                 viewModel.reminderMinutesBefore = null
                             }
@@ -204,6 +230,31 @@ fun CreateWorkoutScreen(
                         modifier = Modifier
                             .fillMaxWidth(),
                     )
+                }
+
+                item {
+                    val timeLabel = viewModel.scheduledTimeMinutes?.let { formatTimeMinutes(it) } ?: "No time set"
+                    OutlinedTextField(
+                        value = timeLabel,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Time (optional)") },
+                        trailingIcon = {
+                            IconButton(onClick = { showTimePicker = true }) {
+                                Icon(
+                                    painterResource(R.drawable.ic_clock),
+                                    contentDescription = "Pick time",
+                                    modifier = Modifier.size(20.dp),
+                                )
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    if (viewModel.scheduledTimeMinutes != null) {
+                        TextButton(onClick = { viewModel.scheduledTimeMinutes = null }) {
+                            Text("Clear time")
+                        }
+                    }
                 }
 
                 item {

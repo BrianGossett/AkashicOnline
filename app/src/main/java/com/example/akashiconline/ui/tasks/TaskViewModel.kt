@@ -89,7 +89,8 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
                         title = task.name,
                         subtitle = null,
                         isCompleted = updated.isCompleted,
-                        isAllDay = true,
+                        isAllDay = task.dueTimeMinutes == null,
+                        timeMinutes = task.dueTimeMinutes,
                         createdAt = System.currentTimeMillis(),
                     )
                 )

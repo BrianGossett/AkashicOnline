@@ -8,6 +8,7 @@ data class WorkoutEntity(
     @PrimaryKey val id: String,
     val name: String,
     val scheduledDate: Long?,
+    val scheduledTimeMinutes: Int?,
     val repeatRule: String?,
     val reminderMinutesBefore: Int?,
     val createdAt: Long,

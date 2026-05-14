@@ -43,6 +43,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.akashiconline.R
 import com.example.akashiconline.data.TaskEntity
 import com.example.akashiconline.ui.tasks.UpcomingViewModel
+import com.example.akashiconline.ui.util.formatTimeMinutes
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -212,13 +213,21 @@ private fun UpcomingTaskRow(
             onCheckedChange = { onToggle() },
         )
         Spacer(Modifier.width(4.dp))
-        Text(
-            text = task.name,
-            style = MaterialTheme.typography.bodyLarge,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
-        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = task.name,
+                style = MaterialTheme.typography.bodyLarge,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (task.dueTimeMinutes != null) {
+                Text(
+                    text = formatTimeMinutes(task.dueTimeMinutes),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
     }
     HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
 }

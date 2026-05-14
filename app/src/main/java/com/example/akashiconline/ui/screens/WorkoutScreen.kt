@@ -48,9 +48,11 @@ import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberSwipeToDismissBoxState
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -73,6 +75,7 @@ import com.example.akashiconline.data.RoundEntity
 import com.example.akashiconline.data.TimerConfig
 import com.example.akashiconline.data.WorkoutEntity
 import com.example.akashiconline.ui.timer.TimerConfigViewModel
+import com.example.akashiconline.ui.util.formatTimeMinutes
 import com.example.akashiconline.ui.workout.WorkoutViewModel
 import com.example.akashiconline.ui.workout.WorkoutWithRounds
 import java.time.Instant
@@ -470,10 +473,32 @@ private fun SchedulePickerSheet(
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var selectedDateMillis by remember { mutableStateOf<Long?>(workout.scheduledDate) }
+    var selectedTimeMinutes by remember { mutableStateOf<Int?>(workout.scheduledTimeMinutes) }
     var repeatRule by remember { mutableStateOf<String?>(workout.repeatRule) }
     var reminderMinutes by remember { mutableStateOf<Int?>(workout.reminderMinutesBefore) }
     var showDatePicker by remember { mutableStateOf(false) }
+    var showTimePicker by remember { mutableStateOf(false) }
     val datePickerState = rememberDatePickerState(initialSelectedDateMillis = selectedDateMillis)
+    val timePickerState = rememberTimePickerState(
+        initialHour = selectedTimeMinutes?.div(60) ?: 9,
+        initialMinute = selectedTimeMinutes?.rem(60) ?: 0,
+    )
+
+    if (showTimePicker) {
+        AlertDialog(
+            onDismissRequest = { showTimePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    selectedTimeMinutes = timePickerState.hour * 60 + timePickerState.minute
+                    showTimePicker = false
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showTimePicker = false }) { Text("Cancel") }
+            },
+            text = { TimePicker(state = timePickerState) },
+        )
+    }
 
     if (showDatePicker) {
         DatePickerDialog(
@@ -531,6 +556,28 @@ private fun SchedulePickerSheet(
                 modifier = Modifier.fillMaxWidth(),
             )
 
+            val timeLabel = selectedTimeMinutes?.let { formatTimeMinutes(it) } ?: "No time set"
+            OutlinedTextField(
+                value = timeLabel,
+                onValueChange = {},
+                readOnly = true,
+                label = { Text("Time (optional)") },
+                trailingIcon = {
+                    IconButton(onClick = { showTimePicker = true }) {
+                        Icon(
+                            painterResource(R.drawable.ic_clock),
+                            contentDescription = "Pick time",
+                        )
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            if (selectedTimeMinutes != null) {
+                TextButton(onClick = { selectedTimeMinutes = null }) {
+                    Text("Clear time")
+                }
+            }
+
             WorkoutSimpleDropdown(
                 label = "Repeat",
                 options = listOf("None", "Daily", "Weekly"),
@@ -570,7 +617,7 @@ private fun SchedulePickerSheet(
             Button(
                 onClick = {
                     val date = selectedDateMillis ?: return@Button
-                    viewModel.scheduleWorkout(workout.id, date, repeatRule, reminderMinutes)
+                    viewModel.scheduleWorkout(workout.id, date, selectedTimeMinutes, repeatRule, reminderMinutes)
                     onSaved()
                 },
                 enabled = selectedDateMillis != null,
@@ -725,6 +772,23 @@ private fun ScheduledWorkoutCard(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                if (item.workout.scheduledTimeMinutes != null) {
+                    Spacer(Modifier.height(2.dp))
+                    Box(
+                        modifier = Modifier
+                            .background(
+                                MaterialTheme.colorScheme.primaryContainer,
+                                RoundedCornerShape(4.dp),
+                            )
+                            .padding(horizontal = 6.dp, vertical = 2.dp),
+                    ) {
+                        Text(
+                            text = formatTimeMinutes(item.workout.scheduledTimeMinutes),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        )
+                    }
+                }
             }
             if (isMissed) {
                 Box(

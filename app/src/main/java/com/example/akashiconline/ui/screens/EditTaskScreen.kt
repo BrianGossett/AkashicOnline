@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -21,8 +22,10 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -36,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.akashiconline.R
 import com.example.akashiconline.ui.tasks.EditTaskViewModel
+import com.example.akashiconline.ui.util.formatTimeMinutes
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -49,12 +53,33 @@ fun EditTaskScreen(
     ),
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
+    var showTimePicker by remember { mutableStateOf(false) }
     val datePickerState = rememberDatePickerState(
         initialSelectedDateMillis = viewModel.dueDateEpochDay?.let { it * 86_400_000L },
+    )
+    val timePickerState = rememberTimePickerState(
+        initialHour = viewModel.dueTimeMinutes?.div(60) ?: 9,
+        initialMinute = viewModel.dueTimeMinutes?.rem(60) ?: 0,
     )
 
     LaunchedEffect(Unit) {
         viewModel.saved.collect { onBack() }
+    }
+
+    if (showTimePicker) {
+        AlertDialog(
+            onDismissRequest = { showTimePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.dueTimeMinutes = timePickerState.hour * 60 + timePickerState.minute
+                    showTimePicker = false
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showTimePicker = false }) { Text("Cancel") }
+            },
+            text = { TimePicker(state = timePickerState) },
+        )
     }
 
     if (showDatePicker) {
@@ -137,8 +162,34 @@ fun EditTaskScreen(
             )
 
             if (viewModel.dueDateEpochDay != null) {
-                TextButton(onClick = { viewModel.dueDateEpochDay = null }) {
+                TextButton(onClick = {
+                    viewModel.dueDateEpochDay = null
+                    viewModel.dueTimeMinutes = null
+                }) {
                     Text("Clear date")
+                }
+
+                val timeLabel = viewModel.dueTimeMinutes?.let { formatTimeMinutes(it) } ?: "No time set"
+                OutlinedTextField(
+                    value = timeLabel,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Time (optional)") },
+                    trailingIcon = {
+                        IconButton(onClick = { showTimePicker = true }) {
+                            Icon(
+                                painterResource(R.drawable.ic_clock),
+                                contentDescription = "Pick time",
+                                modifier = Modifier.size(20.dp),
+                            )
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                if (viewModel.dueTimeMinutes != null) {
+                    TextButton(onClick = { viewModel.dueTimeMinutes = null }) {
+                        Text("Clear time")
+                    }
                 }
             }
 

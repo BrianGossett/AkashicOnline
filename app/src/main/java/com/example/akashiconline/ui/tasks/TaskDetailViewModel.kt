@@ -47,7 +47,8 @@ class TaskDetailViewModel(
                         title = task.name,
                         subtitle = null,
                         isCompleted = updated.isCompleted,
-                        isAllDay = true,
+                        isAllDay = task.dueTimeMinutes == null,
+                        timeMinutes = task.dueTimeMinutes,
                         createdAt = System.currentTimeMillis(),
                     )
                 )

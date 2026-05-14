@@ -45,6 +45,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.akashiconline.R
 import com.example.akashiconline.data.CalendarEventEntity
 import com.example.akashiconline.ui.calendar.CalendarViewModel
+import com.example.akashiconline.ui.util.formatTimeMinutes
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
@@ -107,6 +108,9 @@ fun CalendarScreen(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                 )
             }
+            val allDayEvents = state.selectedDayEvents.filter { it.isAllDay }
+            val scheduledEvents = state.selectedDayEvents.filter { !it.isAllDay }
+
             if (state.selectedDayEvents.isEmpty()) {
                 item {
                     Box(
@@ -123,14 +127,39 @@ fun CalendarScreen(
                     }
                 }
             } else {
-                items(state.selectedDayEvents, key = { it.id }) { event ->
-                    EventRow(
-                        event = event,
-                        onToggle = { viewModel.toggleCompleted(event) },
-                    )
-                    HorizontalDivider(
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                    )
+                if (allDayEvents.isNotEmpty()) {
+                    item(key = "header_all_day") {
+                        Text(
+                            text = "All Day",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                        )
+                    }
+                    items(allDayEvents, key = { it.id }) { event ->
+                        EventRow(
+                            event = event,
+                            onToggle = { viewModel.toggleCompleted(event) },
+                        )
+                        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                    }
+                }
+                if (scheduledEvents.isNotEmpty()) {
+                    item(key = "header_scheduled") {
+                        Text(
+                            text = "Scheduled",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                        )
+                    }
+                    items(scheduledEvents, key = { it.id }) { event ->
+                        EventRow(
+                            event = event,
+                            onToggle = { viewModel.toggleCompleted(event) },
+                        )
+                        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                    }
                 }
             }
             item { Spacer(Modifier.height(80.dp)) }
@@ -307,7 +336,13 @@ private fun EventRow(
                 textDecoration = if (event.isCompleted) TextDecoration.LineThrough
                                  else TextDecoration.None,
             )
-            if (event.subtitle != null) {
+            if (!event.isAllDay && event.timeMinutes != null) {
+                Text(
+                    text = formatTimeMinutes(event.timeMinutes),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else if (event.subtitle != null) {
                 Text(
                     text = event.subtitle,
                     style = MaterialTheme.typography.bodySmall,

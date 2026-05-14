@@ -17,7 +17,7 @@ import androidx.room.RoomDatabase
         WorkoutSessionLogEntity::class,
         TaskEntity::class,
     ],
-    version = 8,
+    version = 11,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {

@@ -39,6 +39,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.akashiconline.R
 import com.example.akashiconline.data.TaskEntity
 import com.example.akashiconline.ui.tasks.TaskViewModel
+import com.example.akashiconline.ui.util.formatTimeMinutes
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -267,8 +268,12 @@ private fun TaskRow(
             if (task.dueDateEpochDay != null && !isCompleted) {
                 val dateText = LocalDate.ofEpochDay(task.dueDateEpochDay)
                     .format(DateTimeFormatter.ofPattern("MMM d"))
+                val badgeText = if (task.dueTimeMinutes != null)
+                    "$dateText · ${formatTimeMinutes(task.dueTimeMinutes)}"
+                else
+                    dateText
                 Text(
-                    text = dateText,
+                    text = badgeText,
                     style = MaterialTheme.typography.labelSmall,
                     color = if (isOverdue)
                         MaterialTheme.colorScheme.error

@@ -46,6 +46,7 @@ import com.example.akashiconline.R
 import com.example.akashiconline.data.CalendarEventEntity
 import com.example.akashiconline.ui.home.HomeUiState
 import com.example.akashiconline.ui.home.HomeViewModel
+import com.example.akashiconline.ui.util.formatTimeMinutes
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -331,7 +332,14 @@ private fun TodayEventCard(event: CalendarEventEntity, onNavigate: (AppDestinati
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            if (event.subtitle != null) {
+            if (!event.isAllDay && event.timeMinutes != null) {
+                Text(
+                    text = formatTimeMinutes(event.timeMinutes),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                )
+            } else if (event.subtitle != null) {
                 Text(
                     text = event.subtitle,
                     style = MaterialTheme.typography.labelSmall,

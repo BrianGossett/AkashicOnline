@@ -30,6 +30,7 @@ class EditTaskViewModel(
     var name by mutableStateOf("")
     var details by mutableStateOf("")
     var dueDateEpochDay by mutableStateOf<Long?>(null)
+    var dueTimeMinutes by mutableStateOf<Int?>(null)
 
     private var originalTask: TaskEntity? = null
 
@@ -46,6 +47,7 @@ class EditTaskViewModel(
                     name = task.name
                     details = task.details ?: ""
                     dueDateEpochDay = task.dueDateEpochDay
+                    dueTimeMinutes = task.dueTimeMinutes
                 }
             }
         }
@@ -62,6 +64,7 @@ class EditTaskViewModel(
                 name = name.trim(),
                 details = details.trim().ifEmpty { null },
                 dueDateEpochDay = dueDateEpochDay,
+                dueTimeMinutes = if (dueDateEpochDay != null) dueTimeMinutes else null,
                 isCompleted = existing?.isCompleted ?: false,
                 completedAt = existing?.completedAt,
                 createdAt = existing?.createdAt ?: now,
@@ -77,7 +80,8 @@ class EditTaskViewModel(
                         title = task.name,
                         subtitle = null,
                         isCompleted = task.isCompleted,
-                        isAllDay = true,
+                        isAllDay = task.dueTimeMinutes == null,
+                        timeMinutes = task.dueTimeMinutes,
                         createdAt = now,
                     )
                 )

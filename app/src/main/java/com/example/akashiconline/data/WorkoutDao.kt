@@ -24,6 +24,19 @@ interface WorkoutDao {
     @Query("SELECT * FROM workouts WHERE id = :id")
     suspend fun getById(id: String): WorkoutEntity?
 
-    @Query("SELECT * FROM workouts WHERE scheduledDate IS NOT NULL ORDER BY scheduledDate ASC")
+    @Query("""
+        SELECT * FROM workouts WHERE scheduledDate IS NOT NULL
+        ORDER BY scheduledDate ASC,
+            CASE WHEN scheduledTimeMinutes IS NULL THEN 1 ELSE 0 END ASC,
+            scheduledTimeMinutes ASC
+    """)
     fun getScheduled(): Flow<List<WorkoutEntity>>
+
+    @Query("""
+        SELECT * FROM workouts
+        WHERE scheduledDate IS NOT NULL
+          AND scheduledDate / 86400000 = :dateEpochDay
+        ORDER BY CASE WHEN scheduledTimeMinutes IS NULL THEN 1 ELSE 0 END ASC, scheduledTimeMinutes ASC
+    """)
+    suspend fun getScheduledForDay(dateEpochDay: Long): List<WorkoutEntity>
 }

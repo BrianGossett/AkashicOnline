@@ -13,5 +13,6 @@ data class CalendarEventEntity(
     val subtitle: String?,
     val isCompleted: Boolean = false,
     val isAllDay: Boolean = true,
+    val timeMinutes: Int? = null,
     val createdAt: Long,
 )
