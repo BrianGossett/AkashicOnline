@@ -34,6 +34,7 @@ import com.example.akashiconline.ui.screens.PresetScreen
 import com.example.akashiconline.ui.screens.ProgramDetailScreen
 import com.example.akashiconline.ui.screens.ProgramsScreen
 import com.example.akashiconline.ui.screens.EditTaskScreen
+import com.example.akashiconline.ui.screens.TaskDetailScreen
 import com.example.akashiconline.ui.screens.TasksScreen
 import com.example.akashiconline.ui.screens.TimerScreen
 import com.example.akashiconline.ui.screens.UpcomingTasksScreen
@@ -310,7 +311,7 @@ fun AkashicOnlineApp() {
             TasksScreen(
                 onBack = { navController.popBackStack() },
                 onNewTask = { navController.navigate("tasks/create") },
-                onOpenTask = { taskId -> navController.navigate("tasks/edit/$taskId") },
+                onOpenTask = { taskId -> navController.navigate("tasks/detail/$taskId") },
                 onOpenUpcoming = { navController.navigate("tasks/upcoming") },
             )
         }
@@ -323,6 +324,17 @@ fun AkashicOnlineApp() {
         ) { backStackEntry ->
             val taskId = backStackEntry.arguments!!.getString("taskId")!!
             EditTaskScreen(taskId = taskId, onBack = { navController.popBackStack() })
+        }
+        composable(
+            route = "tasks/detail/{taskId}",
+            arguments = listOf(navArgument("taskId") { type = NavType.StringType }),
+        ) { backStackEntry ->
+            val taskId = backStackEntry.arguments!!.getString("taskId")!!
+            TaskDetailScreen(
+                taskId = taskId,
+                onBack = { navController.popBackStack() },
+                onEdit = { id -> navController.navigate("tasks/edit/$id") },
+            )
         }
         composable("tasks/upcoming") {
             UpcomingTasksScreen(onBack = { navController.popBackStack() })
