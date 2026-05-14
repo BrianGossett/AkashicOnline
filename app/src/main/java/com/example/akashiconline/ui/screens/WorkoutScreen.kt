@@ -19,6 +19,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.clickable
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
@@ -29,6 +30,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Scaffold
@@ -38,6 +40,7 @@ import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -71,6 +74,7 @@ fun WorkoutScreen(
     onCreateWorkout: () -> Unit,
     onEditWorkout: (workoutId: String) -> Unit,
     onStartWorkout: (workoutId: String) -> Unit,
+    onScheduleWorkout: (workoutId: String) -> Unit,
     onQuickTimerStart: (TimerConfig) -> Unit,
 ) {
     var selectedTab by rememberSaveable { mutableStateOf(0) }
@@ -140,6 +144,7 @@ fun WorkoutScreen(
                     onCreateWorkout = onCreateWorkout,
                     onEditWorkout = onEditWorkout,
                     onStartWorkout = onStartWorkout,
+                    onScheduleWorkout = onScheduleWorkout,
                 )
                 1 -> ScheduledTab(
                     onEditWorkout = onEditWorkout,
@@ -157,10 +162,12 @@ fun MyWorkoutsTab(
     onCreateWorkout: () -> Unit,
     onEditWorkout: (workoutId: String) -> Unit,
     onStartWorkout: (workoutId: String) -> Unit,
+    onScheduleWorkout: (workoutId: String) -> Unit,
     viewModel: WorkoutViewModel = viewModel(),
 ) {
     val workouts by viewModel.workouts.collectAsStateWithLifecycle()
     var pendingDeleteId by remember { mutableStateOf<String?>(null) }
+    var selectedWorkout by remember { mutableStateOf<WorkoutWithRounds?>(null) }
 
     if (pendingDeleteId != null) {
         AlertDialog(
@@ -175,6 +182,29 @@ fun MyWorkoutsTab(
             },
             dismissButton = {
                 TextButton(onClick = { pendingDeleteId = null }) { Text("Cancel") }
+            },
+        )
+    }
+
+    selectedWorkout?.let { item ->
+        WorkoutActionSheet(
+            item = item,
+            onDismiss = { selectedWorkout = null },
+            onStart = {
+                selectedWorkout = null
+                onStartWorkout(item.workout.id)
+            },
+            onSchedule = {
+                selectedWorkout = null
+                onScheduleWorkout(item.workout.id)
+            },
+            onEdit = {
+                selectedWorkout = null
+                onEditWorkout(item.workout.id)
+            },
+            onDelete = {
+                selectedWorkout = null
+                pendingDeleteId = item.workout.id
             },
         )
     }
@@ -208,7 +238,7 @@ fun MyWorkoutsTab(
             }
         } else {
             LazyColumn(
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                contentPadding = PaddingValues(
                     start = 16.dp, end = 16.dp, top = 12.dp, bottom = 88.dp,
                 ),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -217,8 +247,7 @@ fun MyWorkoutsTab(
                 items(workouts, key = { it.workout.id }) { item ->
                     WorkoutCard(
                         item = item,
-                        onStart = { onStartWorkout(item.workout.id) },
-                        onEdit = { onEditWorkout(item.workout.id) },
+                        onSelect = { selectedWorkout = item },
                         onDeleteRequest = { pendingDeleteId = item.workout.id },
                     )
                 }
@@ -238,10 +267,70 @@ fun MyWorkoutsTab(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+private fun WorkoutActionSheet(
+    item: WorkoutWithRounds,
+    onDismiss: () -> Unit,
+    onStart: () -> Unit,
+    onSchedule: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+    ) {
+        Column(modifier = Modifier.padding(bottom = 24.dp)) {
+            // Header
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 12.dp),
+            ) {
+                Text(item.workout.name, style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = workoutMeta(item.rounds),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            HorizontalDivider()
+            SheetActionRow(label = "▶  Start now", onClick = onStart)
+            SheetActionRow(label = "📅  Schedule", onClick = onSchedule)
+            SheetActionRow(label = "✏️  Edit workout", onClick = onEdit)
+            SheetActionRow(
+                label = "🗑  Delete",
+                color = MaterialTheme.colorScheme.error,
+                onClick = onDelete,
+            )
+        }
+    }
+}
+
+@Composable
+private fun SheetActionRow(
+    label: String,
+    color: Color = MaterialTheme.colorScheme.onSurface,
+    onClick: () -> Unit,
+) {
+    Box(
+        contentAlignment = Alignment.CenterStart,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 24.dp, vertical = 16.dp),
+    ) {
+        Text(label, style = MaterialTheme.typography.bodyLarge, color = color)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
 private fun WorkoutCard(
     item: WorkoutWithRounds,
-    onStart: () -> Unit,
-    onEdit: () -> Unit,
+    onSelect: () -> Unit,
     onDeleteRequest: () -> Unit,
 ) {
     val dismissState = rememberSwipeToDismissBoxState()
@@ -273,7 +362,7 @@ private fun WorkoutCard(
         },
     ) {
         ElevatedCard(
-            onClick = onStart,
+            onClick = onSelect,
             shape = RoundedCornerShape(12.dp),
             elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp),
             modifier = Modifier.fillMaxWidth(),
@@ -302,13 +391,14 @@ private fun WorkoutCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                IconButton(onClick = onEdit) {
-                    Icon(
-                        painterResource(R.drawable.ic_edit),
-                        contentDescription = "Edit",
-                        modifier = Modifier.size(20.dp),
-                    )
-                }
+                Icon(
+                    painterResource(R.drawable.ic_chevron_right),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(20.dp)
+                        .padding(end = 8.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
     }

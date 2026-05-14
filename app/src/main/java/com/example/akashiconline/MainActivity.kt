@@ -101,6 +101,7 @@ fun AkashicOnlineApp() {
                 onCreateWorkout = { navController.navigate("workout/create") },
                 onEditWorkout = { workoutId -> navController.navigate("workout/edit/$workoutId") },
                 onStartWorkout = { workoutId -> navController.navigate("active_workout/$workoutId") },
+                onScheduleWorkout = { /* WORKOUT-CHANGE-3 */ },
                 onQuickTimerStart = { config ->
                     navController.navigate(
                         "active_timer/${config.workSeconds}/${config.restSeconds}/${config.rounds}"
