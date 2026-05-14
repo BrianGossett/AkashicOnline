@@ -11,10 +11,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -32,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.akashiconline.ui.components.DualRingTimer
 import com.example.akashiconline.ui.timer.Status
 import com.example.akashiconline.ui.timer.TimerUiState
 import com.example.akashiconline.ui.timer.TimerViewModel
@@ -119,32 +120,27 @@ private fun RunningContent(
     ) {
         Text(
             text = state.stepName,
-            style = MaterialTheme.typography.headlineLarge,
-        )
-
-        Spacer(Modifier.height(8.dp))
-
-        Text(
-            text = formatCountdown(state.secondsRemaining),
-            style = MaterialTheme.typography.displayLarge,
+            style = MaterialTheme.typography.headlineMedium,
         )
 
         Spacer(Modifier.height(16.dp))
 
-        LinearProgressIndicator(
-            progress = {
-                if (state.totalPhaseSeconds > 0)
-                    1f - state.secondsRemaining.toFloat() / state.totalPhaseSeconds
-                else 0f
-            },
-            modifier = Modifier.fillMaxWidth(),
+        DualRingTimer(
+            outerProgress = if (state.totalSteps > 0)
+                (state.currentStep - 1).toFloat() / state.totalSteps
+            else 0f,
+            innerProgress = if (state.totalPhaseSeconds > 0)
+                1f - state.secondsRemaining.toFloat() / state.totalPhaseSeconds
+            else 0f,
+            elapsedSeconds = state.totalElapsedSeconds,
+            modifier = Modifier.size(220.dp),
         )
 
         Spacer(Modifier.height(16.dp))
 
         Text(
             text = "Step ${state.currentStep} of ${state.totalSteps}",
-            style = MaterialTheme.typography.bodyLarge,
+            style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
@@ -207,12 +203,6 @@ private fun CompletionContent(
             Text("Done")
         }
     }
-}
-
-private fun formatCountdown(seconds: Int): String {
-    val m = seconds / 60
-    val s = seconds % 60
-    return "${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}"
 }
 
 private fun formatElapsed(seconds: Int): String {
