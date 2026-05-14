@@ -15,8 +15,9 @@ import androidx.room.RoomDatabase
         WorkoutEntity::class,
         RoundEntity::class,
         WorkoutSessionLogEntity::class,
+        TaskEntity::class,
     ],
-    version = 7,
+    version = 8,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -30,4 +31,5 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun workoutDao(): WorkoutDao
     abstract fun roundDao(): RoundDao
     abstract fun workoutSessionLogDao(): WorkoutSessionLogDao
+    abstract fun taskDao(): TaskDao
 }

@@ -5,6 +5,23 @@ import androidx.room.Room
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
+val MIGRATION_7_8 = object : Migration(7, 8) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS `tasks` (
+                `id` TEXT NOT NULL,
+                `name` TEXT NOT NULL,
+                `details` TEXT,
+                `dueDateEpochDay` INTEGER,
+                `isCompleted` INTEGER NOT NULL DEFAULT 0,
+                `completedAt` INTEGER,
+                `createdAt` INTEGER NOT NULL,
+                PRIMARY KEY(`id`)
+            )
+        """.trimIndent())
+    }
+}
+
 val MIGRATION_6_7 = object : Migration(6, 7) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("""
@@ -84,7 +101,7 @@ object DatabaseProvider {
                 AppDatabase::class.java,
                 "akashic_database"
             )
-            .addMigrations(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+            .addMigrations(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
             .build()
             .also { instance = it }
         }
