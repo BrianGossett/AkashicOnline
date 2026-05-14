@@ -23,8 +23,14 @@ import androidx.compose.foundation.clickable
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -34,12 +40,15 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
@@ -66,6 +75,9 @@ import com.example.akashiconline.data.WorkoutEntity
 import com.example.akashiconline.ui.timer.TimerConfigViewModel
 import com.example.akashiconline.ui.workout.WorkoutViewModel
 import com.example.akashiconline.ui.workout.WorkoutWithRounds
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -78,8 +90,18 @@ fun WorkoutScreen(
     onQuickTimerStart: (TimerConfig) -> Unit,
 ) {
     var selectedTab by rememberSaveable { mutableStateOf(0) }
+    val workoutVm: WorkoutViewModel = viewModel()
+    val snackbarHostState = remember { SnackbarHostState() }
 
-    Scaffold { innerPadding ->
+    LaunchedEffect(Unit) {
+        workoutVm.snackbarMessage.collect { msg ->
+            snackbarHostState.showSnackbar(msg)
+        }
+    }
+
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+    ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -168,6 +190,7 @@ fun MyWorkoutsTab(
     val workouts by viewModel.workouts.collectAsStateWithLifecycle()
     var pendingDeleteId by remember { mutableStateOf<String?>(null) }
     var selectedWorkout by remember { mutableStateOf<WorkoutWithRounds?>(null) }
+    var pendingScheduleItem by remember { mutableStateOf<WorkoutWithRounds?>(null) }
 
     if (pendingDeleteId != null) {
         AlertDialog(
@@ -186,6 +209,15 @@ fun MyWorkoutsTab(
         )
     }
 
+    pendingScheduleItem?.let { item ->
+        SchedulePickerSheet(
+            workout = item.workout,
+            viewModel = viewModel,
+            onDismiss = { pendingScheduleItem = null },
+            onSaved = { pendingScheduleItem = null },
+        )
+    }
+
     selectedWorkout?.let { item ->
         WorkoutActionSheet(
             item = item,
@@ -196,7 +228,7 @@ fun MyWorkoutsTab(
             },
             onSchedule = {
                 selectedWorkout = null
-                onScheduleWorkout(item.workout.id)
+                pendingScheduleItem = item
             },
             onEdit = {
                 selectedWorkout = null
@@ -425,6 +457,166 @@ private fun WorkoutTypeBadge(workout: WorkoutEntity, rounds: List<RoundEntity>) 
             text = label,
             style = MaterialTheme.typography.labelSmall,
         )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SchedulePickerSheet(
+    workout: WorkoutEntity,
+    viewModel: WorkoutViewModel,
+    onDismiss: () -> Unit,
+    onSaved: () -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var selectedDateMillis by remember { mutableStateOf<Long?>(workout.scheduledDate) }
+    var repeatRule by remember { mutableStateOf<String?>(workout.repeatRule) }
+    var reminderMinutes by remember { mutableStateOf<Int?>(workout.reminderMinutesBefore) }
+    var showDatePicker by remember { mutableStateOf(false) }
+    val datePickerState = rememberDatePickerState(initialSelectedDateMillis = selectedDateMillis)
+
+    if (showDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    selectedDateMillis = datePickerState.selectedDateMillis
+                    showDatePicker = false
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
+            },
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 32.dp),
+        ) {
+            Text(
+                text = "Schedule \"${workout.name}\"",
+                style = MaterialTheme.typography.titleMedium,
+            )
+
+            val dateLabel = selectedDateMillis?.let { millis ->
+                Instant.ofEpochMilli(millis)
+                    .atZone(ZoneId.systemDefault())
+                    .toLocalDate()
+                    .format(DateTimeFormatter.ofPattern("EEE, MMM d yyyy"))
+            } ?: "Select date"
+
+            OutlinedTextField(
+                value = dateLabel,
+                onValueChange = {},
+                readOnly = true,
+                label = { Text("Date") },
+                trailingIcon = {
+                    IconButton(onClick = { showDatePicker = true }) {
+                        Icon(
+                            painterResource(R.drawable.ic_calendar),
+                            contentDescription = "Pick date",
+                        )
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            WorkoutSimpleDropdown(
+                label = "Repeat",
+                options = listOf("None", "Daily", "Weekly"),
+                selected = when (repeatRule) {
+                    "DAILY" -> "Daily"
+                    "WEEKLY" -> "Weekly"
+                    else -> "None"
+                },
+                onSelect = { choice ->
+                    repeatRule = when (choice) {
+                        "Daily" -> "DAILY"
+                        "Weekly" -> "WEEKLY"
+                        else -> null
+                    }
+                },
+            )
+
+            WorkoutSimpleDropdown(
+                label = "Reminder",
+                options = listOf("None", "15 min", "30 min", "1 hour"),
+                selected = when (reminderMinutes) {
+                    15 -> "15 min"
+                    30 -> "30 min"
+                    60 -> "1 hour"
+                    else -> "None"
+                },
+                onSelect = { choice ->
+                    reminderMinutes = when (choice) {
+                        "15 min" -> 15
+                        "30 min" -> 30
+                        "1 hour" -> 60
+                        else -> null
+                    }
+                },
+            )
+
+            Button(
+                onClick = {
+                    val date = selectedDateMillis ?: return@Button
+                    viewModel.scheduleWorkout(workout.id, date, repeatRule, reminderMinutes)
+                    onSaved()
+                },
+                enabled = selectedDateMillis != null,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Save to calendar")
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun WorkoutSimpleDropdown(
+    label: String,
+    options: List<String>,
+    selected: String,
+    onSelect: (String) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = it },
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        OutlinedTextField(
+            value = selected,
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(label) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+        ) {
+            options.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(option) },
+                    onClick = { onSelect(option); expanded = false },
+                )
+            }
+        }
     }
 }
 
