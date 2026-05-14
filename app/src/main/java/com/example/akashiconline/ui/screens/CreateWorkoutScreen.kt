@@ -326,6 +326,25 @@ private fun RoundRowItem(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
+                Spacer(Modifier.height(4.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = draft.weightInput,
+                        onValueChange = { onUpdate(draft.copy(weightInput = it)) },
+                        label = { Text("Weight (optional)") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        singleLine = true,
+                        modifier = Modifier.weight(1f),
+                    )
+                    OutlinedTextField(
+                        value = draft.repsInput,
+                        onValueChange = { onUpdate(draft.copy(repsInput = it)) },
+                        label = { Text("Reps (optional)") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
             }
 
             IconButton(onClick = onDelete) {

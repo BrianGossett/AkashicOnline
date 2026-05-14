@@ -25,6 +25,8 @@ data class RoundDraft(
     val name: String = "",
     val durationInput: String = "",
     val isRestRound: Boolean = false,
+    val weightInput: String = "",
+    val repsInput: String = "",
 )
 
 class CreateWorkoutViewModel(
@@ -71,6 +73,11 @@ class CreateWorkoutViewModel(
                             name = r.name,
                             durationInput = r.durationSeconds?.toString() ?: "",
                             isRestRound = r.isRestRound,
+                            weightInput = r.weightKg?.let {
+                                if (it == it.toLong().toFloat()) it.toLong().toString()
+                                else it.toString()
+                            } ?: "",
+                            repsInput = r.reps?.toString() ?: "",
                         )
                     })
                 }
@@ -136,8 +143,8 @@ class CreateWorkoutViewModel(
                         name = draft.name.trim().ifEmpty { "Round ${index + 1}" },
                         durationSeconds = draft.durationInput.toIntOrNull()?.takeIf { it > 0 },
                         isRestRound = draft.isRestRound,
-                        weightKg = null,
-                        reps = null,
+                        weightKg = draft.weightInput.toFloatOrNull()?.takeIf { it > 0 },
+                        reps = draft.repsInput.toIntOrNull()?.takeIf { it > 0 },
                     )
                 }
             )
